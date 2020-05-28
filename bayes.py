@@ -39,14 +39,26 @@ def update(prior,likelihood):
 	posterior = normalize(posterior)
 	return posterior
 
-def translate_normal_dict(dict):
+def parse_user_inputs(dict):
 	dict = dict.to_dict()
 	for key in dict:
-		dict[key] = float(dict[key])
-	prior = stats.norm(loc = dict['prior-location'], scale =dict['prior-scale'])
-	likelihood = stats.norm(loc = dict['likelihood-location'], scale =dict['likelihood-scale'])
-	return {'prior':prior,'likelihood':likelihood}
+		if len(dict[key])>0:
+			dict[key] = float(dict[key])
 
+	if dict["norm-prior-location"] != "":
+		prior = stats.norm(loc = dict['norm-prior-location'], scale =dict['norm-prior-scale'])
+
+	elif dict["lognorm-prior-mu"] != "":
+		prior = stats.lognorm(scale = math.exp(dict['lognorm-prior-mu']), s =dict['lognorm-prior-sigma'])
+
+	elif dict["beta-prior-alpha"] != "":
+		prior = stats.beta(dict["beta-prior-alpha"],dict["beta-prior-beta"])
+
+
+	likelihood = stats.norm(loc = dict['likelihood-location'], scale =dict['likelihood-scale'])
+
+	print(prior,likelihood)
+	return {'prior':prior,'likelihood':likelihood}
 
 # o = stats.gaussian_kde(tom_data.l)
 
@@ -62,7 +74,6 @@ def plot_pdfs(dict_of_dists,x_from,x_to):
 
 
 def plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=-5,x_to=5):
-
 	beta_hat = "TODO"
 	prior_string = "P(X)"
 	likelihood_string = "P(Ê="+str(beta_hat)+"|X)"
@@ -72,13 +83,14 @@ def plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=-5,x_to=5):
 						likelihood_string:likelihood,
 						posterior_string:posterior}
 						,x_from,x_to)
-	plot = mpld3.fig_to_html(plot)
 	return plot
 
 
-def plot_normals_flask(dict):
-	prior = translate_normal_dict(dict)['prior']
-	likelihood = translate_normal_dict(dict)['likelihood']
+def plot_out_html(dict):
+	user_inputs = parse_user_inputs(dict)
+	prior = user_inputs['prior']
+	likelihood = user_inputs['likelihood']
 	posterior = update(prior,likelihood)
-	out = plot_pdfs_bayes_update(prior,likelihood,posterior)
-	return out
+	plot = plot_pdfs_bayes_update(prior,likelihood,posterior)
+	plot = mpld3.fig_to_html(plot)
+	return plot
