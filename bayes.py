@@ -60,8 +60,6 @@ def parse_user_inputs(dict):
 	print(prior,likelihood)
 	return {'prior':prior,'likelihood':likelihood}
 
-# o = stats.gaussian_kde(tom_data.l)
-
 def plot_pdfs(dict_of_dists,x_from,x_to):
 	x = np.linspace(x_from,x_to,50)
 	fig, ax = plt.subplots()
@@ -74,10 +72,9 @@ def plot_pdfs(dict_of_dists,x_from,x_to):
 
 
 def plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=-5,x_to=5):
-	beta_hat = "TODO"
 	prior_string = "P(X)"
-	likelihood_string = "P(Ê="+str(beta_hat)+"|X)"
-	posterior_string = "P(X | Ê="+str(beta_hat)+")"
+	likelihood_string = "P(E|X)"
+	posterior_string = "P(X|E)"
 
 	plot = plot_pdfs({	prior_string:prior,
 						likelihood_string:likelihood,
@@ -86,6 +83,7 @@ def plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=-5,x_to=5):
 	return plot
 
 
+plt.rcParams.update({'font.size': 16})
 def plot_out_html(dict):
 	user_inputs = parse_user_inputs(dict)
 	prior = user_inputs['prior']

@@ -6,9 +6,7 @@ import bayes
 app = Flask(__name__)
 
 
-@app.route('/')
-def my_form():
-	form = '''<form method="POST">
+form = '''<form method="POST">
 	<b>Prior</b>
 
 	<br>Normal
@@ -32,15 +30,8 @@ def my_form():
  	<input type="submit"> 
 	</form>'''
 
-	dropdown = '''<form method="POST">
-  <label for="prior">Choose a form for prior distribution:</label>
-  <select id="prior" name="prior">
-    <option value="normal">Normal</option>
-    <option value="lognormal">Lognormal</option>
-    <option value="beta">Beta</option>
-  </select>
-  <input type="submit" value="Submit">
-</form>'''
+@app.route('/')
+def my_form():
 	return form
 
 @app.route("/", methods=['POST'])
@@ -48,7 +39,7 @@ def hello():
 	my_input = request.form
 
 	plot = bayes.plot_out_html(my_input)
-	return plot
+	return form+plot
 
 if __name__ == "__main__":
     app.run(debug=True)
