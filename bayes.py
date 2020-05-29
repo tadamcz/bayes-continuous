@@ -42,22 +42,32 @@ def update(prior,likelihood):
 def parse_user_inputs(dict):
 	dict = dict.to_dict()
 	for key in dict:
-		if len(dict[key])>0:
-			dict[key] = float(dict[key])
+			if len(dict[key])>0:
+				try:
+					dict[key] = float(dict[key])
+				except ValueError:
+					pass
+	
+	if dict["prior-normal-param1"] != "":
+		prior = stats.norm(loc = dict['prior-normal-param1'], scale =dict['prior-normal-param2'])
 
-	if dict["norm-prior-location"] != "":
-		prior = stats.norm(loc = dict['norm-prior-location'], scale =dict['norm-prior-scale'])
+	elif dict["prior-lognormal-param1"] != "":
+		prior = stats.lognorm(scale = math.exp(dict['prior-lognormal-param1']), s =dict['prior-lognormal-param2'])
 
-	elif dict["lognorm-prior-mu"] != "":
-		prior = stats.lognorm(scale = math.exp(dict['lognorm-prior-mu']), s =dict['lognorm-prior-sigma'])
+	elif dict["prior-beta-param1"] != "":
+		prior = stats.beta(dict["prior-beta-param1"],dict["prior-beta-param2"])
 
-	elif dict["beta-prior-alpha"] != "":
-		prior = stats.beta(dict["beta-prior-alpha"],dict["beta-prior-beta"])
+	'''Redundant, will refactor'''
+	if dict["likelihood-normal-param1"] != "":
+		likelihood = stats.norm(loc = dict['likelihood-normal-param1'], scale =dict['likelihood-normal-param2'])
+
+	elif dict["likelihood-lognormal-param1"] != "":
+		likelihood = stats.lognorm(scale = math.exp(dict['likelihood-lognormal-param1']), s =dict['likelihood-lognormal-param2'])
+
+	elif dict["likelihood-beta-param1"] != "":
+		likelihood = stats.beta(dict["likelihood-beta-param1"],dict["likelihood-beta-param2"])
 
 
-	likelihood = stats.norm(loc = dict['likelihood-location'], scale =dict['likelihood-scale'])
-
-	print(prior,likelihood)
 	return {'prior':prior,'likelihood':likelihood}
 
 def plot_pdfs(dict_of_dists,x_from,x_to):
@@ -84,11 +94,24 @@ def plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=-5,x_to=5):
 
 
 plt.rcParams.update({'font.size': 16})
-def plot_out_html(dict):
+def out_html(dict):
 	user_inputs = parse_user_inputs(dict)
 	prior = user_inputs['prior']
 	likelihood = user_inputs['likelihood']
 	posterior = update(prior,likelihood)
 	plot = plot_pdfs_bayes_update(prior,likelihood,posterior)
 	plot = mpld3.fig_to_html(plot)
-	return plot
+
+	# percentile_string = 'Percentiles of posterior distribution: <br> ' #very inelegant to have html in here
+	# try:
+	# 	percentiles = []
+	# 	ppf = posterior.ppf
+	# 	for p in [0.01,0.1,0.25,0.5,0.75,0.9,0.99]:
+	# 		percentiles.append((p,ppf(p)))
+		
+	# 	for p in percentiles:
+			
+	# 		percentile_string = percentile_string + str(p) + '<br>' 
+	# except RuntimeError:
+	# 	pass
+	return plot # + percentile_string

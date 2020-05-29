@@ -1,47 +1,64 @@
-from flask import Flask
+from flask import Flask, render_template, request
 from flask import request
+
+
+from flask_wtf import FlaskForm
+from wtforms import StringField, DecimalField, FormField, SelectField
+from wtforms.validators import DataRequired
 
 import bayes
 
 app = Flask(__name__)
 app.secret_key = '85471922274287851509 97062761986949020795 57366896783488140597 40749154936961460411 00411694272886184644 96318878629748624589 43282652160909407164 81507837348880085650 94716104893291003189 95680230903613490699'
 
+class TwoParamsForm(FlaskForm):
+	param1 = DecimalField()
+	param2 = DecimalField()
 
+class DistrForm(FlaskForm):
+	normal = FormField(TwoParamsForm)
+	lognormal = FormField(TwoParamsForm)
+	beta = FormField(TwoParamsForm)
 
-form = '''<form method="POST">
-	<b>Prior</b>
+class DistrForm2(FlaskForm):
+    prior = FormField(DistrForm)
+    likelihood = FormField(DistrForm)
 
-	<br>Normal
-	<input name="norm-prior-location" placeholder="Location">
-	<input name="norm-prior-scale" placeholder="Scale">
+def label_form(form):
+	'''I couldn't figure it out without this silly boilerplate'''
+	form.prior.normal.param1.label = "mean"
+	form.prior.normal.param2.label = "sd"
+	form.prior.lognormal.param1.label = "mu"
+	form.prior.lognormal.param2.label = "sigma"
 
-	<br>Lognormal
-	<input name="lognorm-prior-mu" placeholder="Mu">
-	<input name="lognorm-prior-sigma" placeholder="Sigma">
+	form.prior.beta.param1.label = "alpha"
+	form.prior.beta.param2.label = "beta"
 
-	<br>Beta
-	<input name="beta-prior-alpha" placeholder="Alpha">
-	<input name="beta-prior-beta" placeholder="Beta">
+	'''exactly the same thing but for the likelihood!'''
+	form.likelihood.normal.param1.label = "mean"
+	form.likelihood.normal.param2.label = "sd"
 
-	<br>
-	<br><b>Likelihood</b> (Must be Normal)
-	<input name="likelihood-location" placeholder="Mean">
-	<input name="likelihood-scale" placeholder="Standard error">
+	form.likelihood.lognormal.param1.label = "mu"
+	form.likelihood.lognormal.param2.label = "sigma"
 
-	<br>
- 	<input type="submit"> 
-	</form>'''
+	form.likelihood.beta.param1.label = "alpha"
+	form.likelihood.beta.param2.label = "beta"
 
 @app.route('/')
-def my_form():
-	return form
+def submit():
+    form = DistrForm2()
+    label_form(form)
+    return render_template('hw.html',form=form)
 
 @app.route("/", methods=['POST'])
 def hello():
+	form = DistrForm2()
+	label_form(form)
+	form = render_template('hw.html',form=form)
 	my_input = request.form
-
-	plot = bayes.plot_out_html(my_input)
+	plot = bayes.out_html(my_input)
 	return form+plot
+
 
 if __name__ == "__main__":
     app.run(debug=True)
