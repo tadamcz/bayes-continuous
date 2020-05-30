@@ -1,0 +1,8 @@
+WTForms==2.3.1
+scipy==1.4.1
+Flask_WTF==0.14.3
+matplotlib==3.1.2
+mpld3==0.3
+Flask==1.1.2
+numpy==1.18.0
+gunicorn
