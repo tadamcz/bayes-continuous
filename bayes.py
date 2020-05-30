@@ -41,34 +41,40 @@ def update(prior,likelihood):
 
 def parse_user_inputs(dict):
 	dict = dict.to_dict()
-	for key in dict:
-			if len(dict[key])>0:
-				try:
-					dict[key] = float(dict[key])
-				except ValueError:
-					pass
+
+	'''Very ugly'''
+	for key in ['prior-normal-param1','prior-normal-param2',
+				'prior-lognormal-param1','prior-lognormal-param2',
+				'prior-beta-param1','prior-beta-param2',
+				'likelihood-normal-param1','likelihood-normal-param2',
+				'likelihood-lognormal-param1','likelihood-lognormal-param2',
+				'likelihood-beta-param1','likelihood-beta-param2']:
+		if len(dict[key])>0:
+			dict[key] = float(dict[key])
 	
-	if dict["prior-normal-param1"] != "":
+	if dict["prior-select_distribution_family"] == "normal":
 		prior = stats.norm(loc = dict['prior-normal-param1'], scale =dict['prior-normal-param2'])
 
-	elif dict["prior-lognormal-param1"] != "":
+	elif dict["prior-select_distribution_family"] == "lognormal":
 		prior = stats.lognorm(scale = math.exp(dict['prior-lognormal-param1']), s =dict['prior-lognormal-param2'])
 
-	elif dict["prior-beta-param1"] != "":
+	elif dict["prior-select_distribution_family"] == "beta":
 		prior = stats.beta(dict["prior-beta-param1"],dict["prior-beta-param2"])
 
 	'''Redundant, will refactor'''
-	if dict["likelihood-normal-param1"] != "":
+	if dict["likelihood-select_distribution_family"] == "normal":
 		likelihood = stats.norm(loc = dict['likelihood-normal-param1'], scale =dict['likelihood-normal-param2'])
 
-	elif dict["likelihood-lognormal-param1"] != "":
+	elif dict["likelihood-select_distribution_family"] == "lognormal":
 		likelihood = stats.lognorm(scale = math.exp(dict['likelihood-lognormal-param1']), s =dict['likelihood-lognormal-param2'])
 
-	elif dict["likelihood-beta-param1"] != "":
+	elif dict["likelihood-select_distribution_family"] == "beta":
 		likelihood = stats.beta(dict["likelihood-beta-param1"],dict["likelihood-beta-param2"])
 
-
-	return {'prior':prior,'likelihood':likelihood}
+	if 'compute_percentiles' in dict.keys():
+		return {'prior':prior,'likelihood':likelihood,'compute_percentiles':True}
+	else:
+		return {'prior':prior,'likelihood':likelihood,'compute_percentiles':False}
 
 def plot_pdfs(dict_of_dists,x_from,x_to):
 	x = np.linspace(x_from,x_to,50)
@@ -98,20 +104,20 @@ def out_html(dict):
 	user_inputs = parse_user_inputs(dict)
 	prior = user_inputs['prior']
 	likelihood = user_inputs['likelihood']
+	compute_percentiles = user_inputs['compute_percentiles']
 	posterior = update(prior,likelihood)
 	plot = plot_pdfs_bayes_update(prior,likelihood,posterior)
 	plot = mpld3.fig_to_html(plot)
 
-	# percentile_string = 'Percentiles of posterior distribution: <br> ' #very inelegant to have html in here
-	# try:
-	# 	percentiles = []
-	# 	ppf = posterior.ppf
-	# 	for p in [0.01,0.1,0.25,0.5,0.75,0.9,0.99]:
-	# 		percentiles.append((p,ppf(p)))
+
+	if compute_percentiles:
+		percentile_string = 'Percentiles of posterior distribution: <br> ' #very inelegant to have html in here
+		percentiles = []
+		for p in [0.01,0.1,0.25,0.5,0.75,0.9,0.99]:
+			percentiles.append((p,posterior.ppf(p)))
 		
-	# 	for p in percentiles:
+		for p in percentiles:
 			
-	# 		percentile_string = percentile_string + str(p) + '<br>' 
-	# except RuntimeError:
-	# 	pass
-	return plot # + percentile_string
+			percentile_string = percentile_string + str(p) + '<br>' 
+		return plot  + percentile_string
+	return plot

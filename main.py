@@ -3,8 +3,8 @@ from flask import request
 
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, DecimalField, FormField, SelectField
-from wtforms.validators import DataRequired
+from wtforms import StringField, DecimalField, FormField, BooleanField, SelectField
+from wtforms.validators import Regexp, NumberRange, EqualTo, DataRequired, InputRequired
 
 import bayes
 
@@ -13,9 +13,10 @@ app.secret_key = '85471922274287851509 97062761986949020795 57366896783488140597
 
 class TwoParamsForm(FlaskForm):
 	param1 = DecimalField()
-	param2 = DecimalField()
+	param2 = DecimalField(validators=[NumberRange(min=1,max=2,message='no!')])
 
 class DistrForm(FlaskForm):
+	select_distribution_family = SelectField(choices=['normal','lognormal','beta'])
 	normal = FormField(TwoParamsForm)
 	lognormal = FormField(TwoParamsForm)
 	beta = FormField(TwoParamsForm)
@@ -23,6 +24,7 @@ class DistrForm(FlaskForm):
 class DistrForm2(FlaskForm):
     prior = FormField(DistrForm)
     likelihood = FormField(DistrForm)
+    compute_percentiles = BooleanField('Compute percentiles of posterior distribution (slow)')
 
 def label_form(form):
 	'''I couldn't figure it out without this silly boilerplate'''
@@ -62,4 +64,3 @@ def hello():
 
 if __name__ == "__main__":
     app.run(debug=True)
-

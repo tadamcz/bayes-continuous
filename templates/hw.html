@@ -1,9 +1,82 @@
-
-
 <form method="POST">
+<div><b> Prior </b></div>
+{{ form.prior.select_distribution_family.label }} {{ form.prior.select_distribution_family(onchange="display_fields_prior()") }}
 
-	{{ form.prior.label }} {{ form.prior(size=20) }}
-	{{ form.likelihood.label }} {{ form.likelihood(size=20) }}
-	<br>
- 	<input type="submit"> 
-	</form>
+<div id = "prior-normal-field"> {{ form.prior.normal.label }} {{ form.prior.normal }} </div>
+
+<div id = "prior-lognormal-field"> {{ form.prior.lognormal.label }} {{ form.prior.lognormal }} </div>
+
+<div id = "prior-beta-field"> {{ form.prior.beta.label }} {{ form.prior.beta }} </div>
+
+<br>
+
+<div><b> Likelihood </b></div>
+
+{{ form.likelihood.select_distribution_family.label }} {{ form.likelihood.select_distribution_family(onchange="display_fields_likelihood()") }}
+
+<div id = "likelihood-normal-field"> {{ form.likelihood.normal.label }} {{ form.likelihood.normal }} </div>
+
+<div id = "likelihood-lognormal-field"> {{ form.likelihood.lognormal.label }} {{ form.likelihood.lognormal }} </div>
+
+<div id = "likelihood-beta-field"> {{ form.likelihood.beta.label }} {{ form.likelihood.beta }} </div>
+
+
+{{ form.compute_percentiles }}{{ form.compute_percentiles.label }} 
+
+<br>
+	<input type="submit"> 
+</form>
+
+<script>
+function display_fields_prior() {
+  var x = document.getElementById("prior-select_distribution_family").value;
+  
+  // first hide all fields
+  document.getElementById("prior-normal-field").style.display = "none" ;
+  document.getElementById("prior-lognormal-field").style.display = "none" ;
+  document.getElementById("prior-beta-field").style.display = "none" ;
+
+
+  // then display the selected field
+  if (x == "normal") {
+  document.getElementById("prior-normal-field").style.display = "block";
+  }
+
+  if (x == "lognormal") {
+  document.getElementById("prior-lognormal-field").style.display = "block";
+  }
+
+  if (x == "beta") {
+  document.getElementById("prior-beta-field").style.display = "block";
+  }
+}
+
+function display_fields_likelihood() {
+  var x = document.getElementById("likelihood-select_distribution_family").value;
+  
+  // first hide all fields
+  document.getElementById("likelihood-normal-field").style.display = "none" ;
+  document.getElementById("likelihood-lognormal-field").style.display = "none" ;
+  document.getElementById("likelihood-beta-field").style.display = "none" ;
+
+
+  // then display the selected field
+  if (x == "normal") {
+  document.getElementById("likelihood-normal-field").style.display = "block";
+  }
+
+  if (x == "lognormal") {
+  document.getElementById("likelihood-lognormal-field").style.display = "block";
+  }
+
+  if (x == "beta") {
+  document.getElementById("likelihood-beta-field").style.display = "block";
+  }
+}
+
+
+// run it once at the beginning
+display_fields_prior()  
+display_fields_likelihood()  
+
+</script>

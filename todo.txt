@@ -1,0 +1,7 @@
+figure out what's up with ppf function slowness
+validation
+refactor redundant code
+new ways to inputs distributions
+	kernel density estimation
+	fit distribution to quartiles/deciles
+	addition distribution types
