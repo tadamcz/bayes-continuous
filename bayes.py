@@ -76,8 +76,8 @@ def parse_user_inputs(dict):
 	else:
 		return {'prior':prior,'likelihood':likelihood,'compute_percentiles':False}
 
-def plot_pdfs(dict_of_dists,x_from,x_to):
-	x = np.linspace(x_from,x_to,50)
+def plot_pdfs(dict_of_dists,x_from=-5,x_to=5):
+	x = np.linspace(x_from,x_to,(x_to-x_from)*10)
 	fig, ax = plt.subplots()
 	for dist in dict_of_dists:
 		ax.plot(x,dict_of_dists[dist].pdf(x),label=dist)
@@ -87,7 +87,7 @@ def plot_pdfs(dict_of_dists,x_from,x_to):
 	return fig
 
 
-def plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=-5,x_to=5):
+def plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=-50,x_to=50):
 	prior_string = "P(X)"
 	likelihood_string = "P(E|X)"
 	posterior_string = "P(X|E)"
@@ -109,15 +109,71 @@ def out_html(dict):
 	plot = plot_pdfs_bayes_update(prior,likelihood,posterior)
 	plot = mpld3.fig_to_html(plot)
 
+	ev = np.around(posterior.expect(),3)
+	ev_string = 'Posterior expected value: '+str(ev)
 
 	if compute_percentiles:
-		percentile_string = 'Percentiles of posterior distribution: <br> ' #very inelegant to have html in here
-		percentiles = []
-		for p in [0.01,0.1,0.25,0.5,0.75,0.9,0.99]:
-			percentiles.append((p,posterior.ppf(p)))
-		
-		for p in percentiles:
-			
-			percentile_string = percentile_string + str(p) + '<br>' 
-		return plot  + percentile_string
-	return plot
+		percentiles_string = '<br> Percentiles of posterior distribution: <br> ' #very inelegant to have html in here
+		ps = [0.1,0.25,0.5,0.75,0.9]
+		percentiles = np.around(posterior.ppf(ps),3)
+		percentiles = zip(ps,percentiles)
+		for x in percentiles:
+			percentiles_string += str(x) + '<br>'
+		return plot + ev_string + percentiles_string
+
+	return plot + ev_string
+
+# prior = stats.norm(10,1)
+# likelihood = stats.norm(20,1)
+# posterior = update(prior,likelihood)
+# ps = [0.1,0.25,0.5,0.75,0.9]
+# percentiles = posterior.ppf(ps)
+# percentiles = zip(ps,percentiles)
+# percentiles_string = 'Percentiles of posterior distribution: <br>'
+# for x in percentiles:
+# 	percentiles_string += str(x) + '<br>'
+# print(percentiles_string)
+# import time
+# from pynverse import inversefunc
+# start = time.time()
+# inv = inversefunc(posterior.cdf, 1, 10)
+# end = time.time()
+# print(end-start,'seconds')
+
+# start = time.time()
+# for p in [0.1,0.25,0.5,0.75,0.9]:
+# 	print(posterior.ppf(p))
+# end = time.time()
+
+# print(end-start,'seconds')
+
+
+
+
+# x = np.linspace(0,1,10)
+# fig, ax = plt.subplots()
+# # ax.plot(x,posterior.cdf(x))
+# # ax.plot(x,likelihood.cdf(x))
+# # ax.plot(x,prior.cdf(x))
+# # plt.show()
+
+
+# # for i in range(40,50):
+# # 	print('cdf of',i,posterior.cdf(i))
+ 
+
+
+# from multiprocessing import Pool
+
+# def f(x):
+# 	return posterior.ppf(x)
+
+# start = time.time()
+# if __name__ == '__main__':
+#     with Pool() as p:
+#         p.map(f, [0.01,0.1,0.25,0.5,0.75,0.9,0.99])
+# end = time.time()
+# print(end-start,'seconds with Pool')
+
+# for p in [0.01,0.1,0.25,0.5,0.75,0.9,0.99]:
+# 	f(p)
