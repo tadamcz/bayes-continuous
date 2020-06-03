@@ -3,8 +3,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 from scipy import integrate
+import sys
 
 import mpld3
+import emcee
 
 def is_a_distribution(obj):
 	if issubclass(type(obj),stats.rv_continuous):
@@ -35,8 +37,8 @@ def normalize(distr):
 	return ret
 
 def update(prior,likelihood):
-	posterior = Product_pdf(prior,likelihood)
-	posterior = normalize(posterior)
+	unnormalized_posterior = Product_pdf(prior,likelihood)
+	posterior = normalize(unnormalized_posterior)
 	return posterior
 
 def parse_user_inputs(dict):
@@ -71,10 +73,20 @@ def parse_user_inputs(dict):
 	elif dict["likelihood-select_distribution_family"] == "beta":
 		likelihood = stats.beta(dict["likelihood-beta-param1"],dict["likelihood-beta-param2"])
 
-	if 'compute_percentiles' in dict.keys():
-		return {'prior':prior,'likelihood':likelihood,'compute_percentiles':True}
-	else:
-		return {'prior':prior,'likelihood':likelihood,'compute_percentiles':False}
+	
+	compute_percentiles_exact = False
+	compute_percentiles_mcmc = False
+	
+	if 'percentiles-compute_percentiles_exact' in dict.keys():
+		compute_percentiles_exact = True
+	
+	if 'percentiles-compute_percentiles_mcmc' in dict.keys():
+		compute_percentiles_mcmc = True
+	
+	return {'prior':prior,
+				'likelihood':likelihood,
+				'compute_percentiles_exact':compute_percentiles_exact,
+				'compute_percentiles_mcmc':compute_percentiles_mcmc}
 
 def plot_pdfs(dict_of_dists,x_from=-5,x_to=5):
 	x = np.linspace(x_from,x_to,(x_to-x_from)*10)
@@ -98,34 +110,207 @@ def plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=-50,x_to=50):
 						,x_from,x_to)
 	return plot
 
+import time
+def mcmc_sample(distr,nwalkers=10,nruns=500):
+	ndim = 1
+	location_first_guess = distr.expect()
+	p0 = np.random.normal(loc=location_first_guess,size=(nwalkers, ndim))
+	# the default is to use a standard normal N(0,1) p0 = np.random.randn(nwalkers, ndim)
+
+	def log_prob(x):
+		if distr.pdf(x)>0:
+			return math.log(distr.pdf(x))
+		else:
+			return -np.inf
+	sampler = emcee.EnsembleSampler(nwalkers, 1, log_prob)
+
+	# burn-in
+	state = sampler.run_mcmc(p0, 100)
+	sampler.reset()
+	
+	# Main run
+	sampler.run_mcmc(state, nruns)
+
+	samples = sampler.get_chain(flat=True)[:, 0]
+	return samples
+
+def percentiles_from_list(list,percentiles_list):
+	list.sort()
+	l = len(list)
+	ret = []
+	for p in percentiles_list:
+		index = math.floor(p*l)
+		ret.append((p,list[index]))
+	return ret
+
+def mcmc_percentiles(distr,percentiles_list):
+	nwalkers = 10 
+	nruns = 500
+	start = time.time()
+	samples = mcmc_sample(distr,nwalkers,nruns)
+	ret = percentiles_from_list(samples,percentiles_list)
+	end = time.time()
+	description_string = 'Computed using '+str(nwalkers*nruns)+' samples from posterior using emcee in '+str(np.around(end-start,1))+' seconds'
+	return {'result': ret, 'runtime':description_string}
+
+def compute_percentiles_exact(distr,percentiles_list):
+	start = time.time()
+	percentiles_result = np.around(distr.ppf(percentiles_list),3)
+	end = time.time()
+	description_string = 'Computed in '+str(np.around(end-start,1))+' seconds'
+	percentiles_result = zip(percentiles_list,percentiles_result)
+	return {'result':percentiles_result,'runtime':description_string}
+
 
 plt.rcParams.update({'font.size': 16})
 def out_html(dict):
+	# Parse inputs
 	user_inputs = parse_user_inputs(dict)
 	prior = user_inputs['prior']
 	likelihood = user_inputs['likelihood']
-	compute_percentiles = user_inputs['compute_percentiles']
+	compute_percentiles_exact_setting = user_inputs['compute_percentiles_exact']
+	compute_percentiles_mcmc_setting = user_inputs['compute_percentiles_mcmc']
+
+	
+	# Plot
 	posterior = update(prior,likelihood)
 	plot = plot_pdfs_bayes_update(prior,likelihood,posterior)
 	plot = mpld3.fig_to_html(plot)
 
+	# Expected value
 	ev = np.around(posterior.expect(),3)
 	ev_string = 'Posterior expected value: '+str(ev)
+	
 
-	if compute_percentiles:
-		percentiles_string = '<br> Percentiles of posterior distribution: <br> ' #very inelegant to have html in here
-		ps = [0.1,0.25,0.5,0.75,0.9]
-		percentiles = np.around(posterior.ppf(ps),3)
-		percentiles = zip(ps,percentiles)
-		for x in percentiles:
-			percentiles_string += str(x) + '<br>'
-		return plot + ev_string + percentiles_string
 
-	return plot + ev_string
+	# percentiles, exact
+	percentiles_exact_string = ''
+	if compute_percentiles_exact_setting:
+		print("running percentiles exact", file=sys.stderr)
+		percentiles_exact = compute_percentiles_exact(posterior,[0.1,0.25,0.5,0.75,0.9])
+		percentiles_exact_result = percentiles_exact['result']
+		percentiles_exact_runtime = percentiles_exact['runtime']
 
-# prior = stats.norm(10,1)
-# likelihood = stats.norm(20,1)
+		percentiles_exact_string = '<br> Percentiles of posterior distribution (exact): <br> '+percentiles_exact_runtime +'<br>'#very inelegant to have html in here
+		print(percentiles_exact_string, file=sys.stderr)
+		for x in percentiles_exact_result:
+			percentiles_exact_string += str(x) + '<br>'
+
+	# percentiles, mcmc
+	percentiles_mcmc_string = ''
+	if compute_percentiles_mcmc_setting:
+		print("running percentiles mcmc", file=sys.stderr)
+		percentiles_mcmc = mcmc_percentiles(posterior,[0.1,0.25,0.5,0.75,0.9])
+		percentiles_mcmc_result = percentiles_mcmc['result']
+		percentiles_mcmc_runtime = percentiles_mcmc['runtime']
+
+		percentiles_mcmc_string = '<br> Percentiles of posterior distribution (MCMC): <br>'+percentiles_mcmc_runtime+'<br>'
+		print(percentiles_mcmc_string, file=sys.stderr)
+		for x in percentiles_mcmc_result:
+			percentiles_mcmc_string += str(x[0]) +', '+ str(np.around(x,3)[1]) + '<br>'
+
+	return plot + ev_string + percentiles_exact_string + percentiles_mcmc_string
+
+
+# prior = stats.lognorm(scale=math.exp(3),s=1)
+# likelihood = stats.norm(loc=5,scale=20)
 # posterior = update(prior,likelihood)
+# print(mcmc_percentiles(posterior,[0.1,0.25,0.5,0.75,0.9]))
+# print([x for x in compute_percentiles_exact(posterior,[0.1,0.25,0.5,0.75,0.9])])
+
+# s = time.time()
+# for x in [0.1,0.25,0.5,0.75,0.9]:
+# 	posterior.ppf(x)
+# e = time.time()
+# print(e-s,'seconds')
+
+
+# s = time.time()
+# compute_percentiles_exact(posterior,[0.1,0.25,0.5,0.75,0.9])
+# e = time.time()
+# print(e-s,'seconds')
+
+# x = np.arange(-100, 100)
+# import time
+# ps = [0.1,0.25,0.5,0.75,0.9]
+# start = time.time()
+# percentiles = np.around(posterior.ppf(ps),3)
+# percentiles = zip(ps,percentiles)
+# end = time.time()
+# print('ppf')
+# for x in percentiles:
+# 	print(x)
+
+
+# def p(x):
+# 	return posterior.pdf(x)
+
+# def q(x):
+# 	return stats.norm.pdf(x, loc=0, scale=100)
+
+# x = np.arange(-100, 100)
+# k = max(p(x) / q(x))
+
+
+# def rejection_sampling(iter):
+# 	samples = []
+
+# 	for i in range(iter):
+# 		z = np.random.normal(50, 30)
+# 		u = np.random.uniform(0, k*q(z))
+
+# 		if u <= p(z):
+# 			samples.append(z)
+
+# 	return np.array(samples)
+
+
+
+# import time
+# if __name__ == '__main__':
+# 	plt.plot(x, p(x))
+# 	plt.plot(x, k*q(x))
+# 	# plt.show()
+# 	start = time.time()
+# 	s = rejection_sampling(iter=5000)
+# 	end = time.time()
+# 	print(len(s))
+# 	print(s)
+# 	print('rejection sampling method:')
+
+# 	print(end-start,'seconds')
+# 	percentiles_from_list(s)
+	
+
+
+
+
+# print(end-start,'seconds')
+
+
+# import emcee
+
+# ndim, nwalkers = 1, 20
+# ivar = 1. / np.random.rand(ndim)
+# p0 = np.random.randn(nwalkers, ndim)
+
+# start = time.time()
+# def log_prob(x):
+# 	if posterior.pdf(x)>0:
+# 		return math.log(posterior.pdf(x))
+# 	else:
+# 		return -np.inf
+# sampler = emcee.EnsembleSampler(nwalkers, 1, log_prob)
+# sampler.run_mcmc(p0, 5000)
+# s = list(sampler.get_chain(flat=True)[:,0])
+# print('len',len(s))
+# percentiles_from_list(s)
+# end = time.time()
+# print(end-start,'seconds mcmc')
+
+
+
+
 # ps = [0.1,0.25,0.5,0.75,0.9]
 # percentiles = posterior.ppf(ps)
 # percentiles = zip(ps,percentiles)

@@ -8,9 +8,7 @@
 
 <div id = "prior-beta-field"> {{ form.prior.beta.label }} {{ form.prior.beta }} </div>
 
-<br>
-
-<div><b> Likelihood </b></div>
+<br><div><b> Likelihood </b></div>
 
 {{ form.likelihood.select_distribution_family.label }} {{ form.likelihood.select_distribution_family(onchange="display_fields_likelihood()") }}
 
@@ -20,8 +18,8 @@
 
 <div id = "likelihood-beta-field"> {{ form.likelihood.beta.label }} {{ form.likelihood.beta }} </div>
 
-
-{{ form.compute_percentiles }}{{ form.compute_percentiles.label }} 
+<br><div><b>{{ form.percentiles.label }}</b> </div>
+<b>{{ form.percentiles }} </b>
 
 <br>
 	<input type="submit"> 
