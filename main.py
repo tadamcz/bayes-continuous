@@ -21,10 +21,16 @@ class DistrForm(FlaskForm):
 	lognormal = FormField(TwoParamsForm)
 	beta = FormField(TwoParamsForm)
 
+class PercentileForm(FlaskForm):
+	compute_percentiles_exact = BooleanField('Compute percentiles of posterior distribution (exact, may fail)')
+	compute_percentiles_mcmc = BooleanField('Approximate percentiles of posterior distribution using MCMC')
+
+
 class DistrForm2(FlaskForm):
-    prior = FormField(DistrForm)
-    likelihood = FormField(DistrForm)
-    compute_percentiles = BooleanField('Compute percentiles of posterior distribution (slow)')
+	prior = FormField(DistrForm)
+	likelihood = FormField(DistrForm)
+	percentiles = FormField(PercentileForm)
+ 
 
 def label_form(form):
 	'''I couldn't figure it out without this silly boilerplate'''
@@ -48,9 +54,9 @@ def label_form(form):
 
 @app.route('/')
 def submit():
-    form = DistrForm2()
-    label_form(form)
-    return render_template('hw.html',form=form)
+	form = DistrForm2()
+	label_form(form)
+	return render_template('hw.html',form=form)
 
 @app.route("/", methods=['POST'])
 def hello():
@@ -63,4 +69,4 @@ def hello():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+	app.run(debug=True)
