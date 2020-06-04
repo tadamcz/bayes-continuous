@@ -44,7 +44,7 @@ def update(prior,likelihood):
 def parse_user_inputs(dict):
 	dict = dict.to_dict()
 
-	# debugging print(dict, file=sys.stderr)
+	# debugging print('Received dict',dict, file=sys.stderr)
 
 	for key in dict.keys():
 		cond1 = 'likelihood' in key
@@ -73,7 +73,9 @@ def parse_user_inputs(dict):
 		prior = stats.beta(dict["prior-beta-param1"],dict["prior-beta-param2"])
 
 	elif dict["prior-select_distribution_family"] == "uniform":
-		prior = stats.uniform(dict["prior-uniform-param1"],dict["prior-uniform-param2"])
+		loc = dict["prior-uniform-param1"]
+		scale = dict["prior-uniform-param2"] - loc
+		prior = stats.uniform(loc,scale)
 
 	'''Redundant, will refactor'''
 	if dict["likelihood-select_distribution_family"] == "normal":
@@ -85,9 +87,10 @@ def parse_user_inputs(dict):
 	elif dict["likelihood-select_distribution_family"] == "beta":
 		likelihood = stats.beta(dict["likelihood-beta-param1"],dict["likelihood-beta-param2"])
 
-	elif dict["prior-select_distribution_family"] == "uniform":
-		prior = stats.uniform(dict["likelihood-uniform-param1"],dict["likelihood-uniform-param2"])
-
+	elif dict["likelihood-select_distribution_family"] == "uniform":
+		loc = dict["likelihood-uniform-param1"]
+		scale = dict["likelihood-uniform-param2"] - loc
+		likelihood = stats.uniform(loc,scale)
 
 	compute_percentiles_exact = False
 	compute_percentiles_mcmc = False
@@ -210,7 +213,6 @@ def out_html(dict):
 		percentiles_exact_runtime = percentiles_exact['runtime']
 
 		percentiles_exact_string = '<br> Percentiles of posterior distribution (exact): <br> '+percentiles_exact_runtime +'<br>'#very inelegant to have html in here
-		print(percentiles_exact_string, file=sys.stderr)
 		for x in percentiles_exact_result:
 			percentiles_exact_string += str(x) + '<br>'
 
@@ -223,7 +225,6 @@ def out_html(dict):
 		percentiles_mcmc_runtime = percentiles_mcmc['runtime']
 
 		percentiles_mcmc_string = '<br> Percentiles of posterior distribution (MCMC): <br>'+percentiles_mcmc_runtime+'<br>'
-		print(percentiles_mcmc_string, file=sys.stderr)
 		for x in percentiles_mcmc_result:
 			percentiles_mcmc_string += str(x[0]) +', '+ str(np.around(x,3)[1]) + '<br>'
 
