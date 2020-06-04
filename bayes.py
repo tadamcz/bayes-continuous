@@ -44,14 +44,22 @@ def update(prior,likelihood):
 def parse_user_inputs(dict):
 	dict = dict.to_dict()
 
-	'''Very ugly'''
-	for key in ['prior-normal-param1','prior-normal-param2',
-				'prior-lognormal-param1','prior-lognormal-param2',
-				'prior-beta-param1','prior-beta-param2',
-				'likelihood-normal-param1','likelihood-normal-param2',
-				'likelihood-lognormal-param1','likelihood-lognormal-param2',
-				'likelihood-beta-param1','likelihood-beta-param2']:
-		if len(dict[key])>0:
+	# debugging print(dict, file=sys.stderr)
+
+	for key in dict.keys():
+		cond1 = 'likelihood' in key
+		cond2 = 'prior' in key
+		yes = cond1 or cond2
+
+		cond3 = 'percentiles' in key
+		cond4 = 'family' in key
+		cond5 = 'csrf' in key
+		cond6 = len(dict[key])==0
+
+		no = cond4 or cond5 or cond6
+
+		if yes and not no:
+			# debugging print(key, file=sys.stderr)
 			dict[key] = float(dict[key])
 	
 	if dict["prior-select_distribution_family"] == "normal":
