@@ -61,6 +61,7 @@ def parse_user_inputs(dict):
 		if yes and not no:
 			# debugging print(key, file=sys.stderr)
 			dict[key] = float(dict[key])
+		
 	
 	if dict["prior-select_distribution_family"] == "normal":
 		prior = stats.norm(loc = dict['prior-normal-param1'], scale =dict['prior-normal-param2'])
@@ -70,6 +71,9 @@ def parse_user_inputs(dict):
 
 	elif dict["prior-select_distribution_family"] == "beta":
 		prior = stats.beta(dict["prior-beta-param1"],dict["prior-beta-param2"])
+
+	elif dict["prior-select_distribution_family"] == "uniform":
+		prior = stats.uniform(dict["prior-uniform-param1"],dict["prior-uniform-param2"])
 
 	'''Redundant, will refactor'''
 	if dict["likelihood-select_distribution_family"] == "normal":
@@ -81,7 +85,10 @@ def parse_user_inputs(dict):
 	elif dict["likelihood-select_distribution_family"] == "beta":
 		likelihood = stats.beta(dict["likelihood-beta-param1"],dict["likelihood-beta-param2"])
 
-	
+	elif dict["prior-select_distribution_family"] == "uniform":
+		prior = stats.uniform(dict["likelihood-uniform-param1"],dict["likelihood-uniform-param2"])
+
+
 	compute_percentiles_exact = False
 	compute_percentiles_mcmc = False
 	
@@ -158,12 +165,15 @@ def mcmc_percentiles(distr,percentiles_list):
 	samples = mcmc_sample(distr,nwalkers,nruns)
 	ret = percentiles_from_list(samples,percentiles_list)
 	end = time.time()
-	description_string = 'Computed using '+str(nwalkers*nruns)+' samples from posterior using emcee in '+str(np.around(end-start,1))+' seconds'
+	description_string = 'Approximated using emcee with '+str(nwalkers*nruns)+' samples, in '+str(np.around(end-start,1))+' seconds'
 	return {'result': ret, 'runtime':description_string}
 
 def compute_percentiles_exact(distr,percentiles_list):
 	start = time.time()
-	percentiles_result = np.around(distr.ppf(percentiles_list),3)
+	try:
+		percentiles_result = np.around(distr.ppf(percentiles_list),3)
+	except RuntimeError:
+		return {'result':'','runtime':'RuntimeError'}
 	end = time.time()
 	description_string = 'Computed in '+str(np.around(end-start,1))+' seconds'
 	percentiles_result = zip(percentiles_list,percentiles_result)
@@ -187,7 +197,7 @@ def out_html(dict):
 
 	# Expected value
 	ev = np.around(posterior.expect(),3)
-	ev_string = 'Posterior expected value: '+str(ev)
+	ev_string = 'Posterior expected value: '+str(ev)+'<br>'
 	
 
 
@@ -220,15 +230,20 @@ def out_html(dict):
 	return plot + ev_string + percentiles_exact_string + percentiles_mcmc_string
 
 
-# prior = stats.lognorm(scale=math.exp(3),s=1)
-# likelihood = stats.norm(loc=5,scale=20)
+# prior = stats.lognorm(scale=math.exp(2),s=2)
+# likelihood = stats.norm(loc=5,scale=15)
 # posterior = update(prior,likelihood)
-# print(mcmc_percentiles(posterior,[0.1,0.25,0.5,0.75,0.9]))
-# print([x for x in compute_percentiles_exact(posterior,[0.1,0.25,0.5,0.75,0.9])])
+
+# if __name__ == "__main__":
+# 	model = pm.Model()
+# 	with model:
+# 	    mu1 = pm.Normal("mu1", mu=0, sigma=1, shape=1)
+# 	    step = pm.NUTS()
+# 	    trace = pm.sample(2000, tune=1000, init=None, step=step, cores=2)
+# 	print(model.trace)
 
 # s = time.time()
-# for x in [0.1,0.25,0.5,0.75,0.9]:
-# 	posterior.ppf(x)
+# percentiles_result = np.around(posterior.ppf([0.1,0.25,0.5,0.75,0.9]),3)
 # e = time.time()
 # print(e-s,'seconds')
 

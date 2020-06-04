@@ -16,13 +16,14 @@ class TwoParamsForm(FlaskForm):
 	param2 = DecimalField(validators=[NumberRange(min=1,max=2,message='no!')])
 
 class DistrForm(FlaskForm):
-	select_distribution_family = SelectField(choices=['normal','lognormal','beta'])
+	select_distribution_family = SelectField(choices=['normal','lognormal','beta','uniform'])
 	normal = FormField(TwoParamsForm)
 	lognormal = FormField(TwoParamsForm)
 	beta = FormField(TwoParamsForm)
+	uniform = FormField(TwoParamsForm)
 
 class PercentileForm(FlaskForm):
-	compute_percentiles_exact = BooleanField('Compute percentiles of posterior distribution (exact, may fail)')
+	compute_percentiles_exact = BooleanField('Compute percentiles of posterior distribution (exact)')
 	compute_percentiles_mcmc = BooleanField('Approximate percentiles of posterior distribution using MCMC')
 
 
@@ -64,8 +65,8 @@ def hello():
 	label_form(form)
 	form = render_template('hw.html',form=form)
 	my_input = request.form
-	plot = bayes.out_html(my_input)
-	return form+plot
+	result = bayes.out_html(my_input)
+	return form+result
 
 
 if __name__ == "__main__":

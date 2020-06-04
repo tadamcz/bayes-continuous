@@ -8,6 +8,9 @@
 
 <div id = "prior-beta-field"> {{ form.prior.beta.label }} {{ form.prior.beta }} </div>
 
+<div id = "prior-uniform-field"> {{ form.prior.uniform.label }} {{ form.prior.uniform }} </div>
+
+
 <br><div><b> Likelihood </b></div>
 
 {{ form.likelihood.select_distribution_family.label }} {{ form.likelihood.select_distribution_family(onchange="display_fields_likelihood()") }}
@@ -17,6 +20,8 @@
 <div id = "likelihood-lognormal-field"> {{ form.likelihood.lognormal.label }} {{ form.likelihood.lognormal }} </div>
 
 <div id = "likelihood-beta-field"> {{ form.likelihood.beta.label }} {{ form.likelihood.beta }} </div>
+
+<div id = "likelihood-uniform-field"> {{ form.likelihood.uniform.label }} {{ form.likelihood.uniform }} </div>
 
 <br><div><b>{{ form.percentiles.label }}</b> </div>
 <b>{{ form.percentiles }} </b>
@@ -32,7 +37,9 @@ function display_fields_prior() {
   // first hide all fields
   document.getElementById("prior-normal-field").style.display = "none" ;
   document.getElementById("prior-lognormal-field").style.display = "none" ;
-  document.getElementById("prior-beta-field").style.display = "none" ;
+  document.getElementById("prior-beta-field").style.display = "none" ; 
+  document.getElementById("prior-uniform-field").style.display = "none" ;
+
 
 
   // then display the selected field
@@ -47,6 +54,10 @@ function display_fields_prior() {
   if (x == "beta") {
   document.getElementById("prior-beta-field").style.display = "block";
   }
+
+  if (x == "uniform") {
+  document.getElementById("prior-uniform-field").style.display = "block";
+  }
 }
 
 function display_fields_likelihood() {
@@ -55,8 +66,8 @@ function display_fields_likelihood() {
   // first hide all fields
   document.getElementById("likelihood-normal-field").style.display = "none" ;
   document.getElementById("likelihood-lognormal-field").style.display = "none" ;
-  document.getElementById("likelihood-beta-field").style.display = "none" ;
-
+  document.getElementById("likelihood-beta-field").style.display = "none" ; 
+  document.getElementById("likelihood-uniform-field").style.display = "none" ;
 
   // then display the selected field
   if (x == "normal") {
@@ -70,8 +81,11 @@ function display_fields_likelihood() {
   if (x == "beta") {
   document.getElementById("likelihood-beta-field").style.display = "block";
   }
-}
 
+  if (x == "uniform") {
+  document.getElementById("likelihood-uniform-field").style.display = "block";
+  }
+}
 
 // run it once at the beginning
 display_fields_prior()  
