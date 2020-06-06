@@ -7,3 +7,4 @@ Flask==1.1.2
 numpy==1.18.0
 gunicorn
 emcee
+Flask-Executor==0.9.3
