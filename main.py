@@ -68,9 +68,11 @@ def hello():
 	my_input = request.form
 	my_input_parsed = bayes.parse_user_inputs(my_input)
 	graph = bayes.graph_out(my_input)
-	thread_id = str(random.randint(0, 10000))
-	executor.submit_stored(thread_id, bayes.percentiles_out, my_input)
-	return render_template('hw.html',form=form,graph=graph,thread_id=thread_id,check_on_background_task=1)
+	thread_id_exact = str(random.randint(0, 10000))
+	thread_id_mcmc = str(random.randint(0, 10000))
+	executor.submit_stored(thread_id_exact, bayes.percentiles_out_exact, my_input)
+	executor.submit_stored(thread_id_mcmc,bayes.percentiles_out_mcmc,my_input)
+	return render_template('hw.html',form=form,graph=graph,thread_id_exact=thread_id_exact,thread_id_mcmc=thread_id_mcmc,check_on_background_task=1)
 
 @app.route('/get-result/<thread_id>')
 def get_result(thread_id):

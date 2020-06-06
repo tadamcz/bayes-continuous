@@ -193,41 +193,49 @@ def graph_out(dict):
 	
 	return plot+ev_string
 
-
-
-def percentiles_out(dict):
+def percentiles_out_mcmc(dict):
 	# Parse inputs
 	user_inputs = parse_user_inputs(dict)
 
 	prior = user_inputs['prior']
 	likelihood = user_inputs['likelihood']	
+	
 	# compute posterior pdf
 	posterior = update(prior,likelihood)
 
-	# percentiles, exact
-	percentiles_exact_string = ''
-	print("running percentiles exact", file=sys.stderr)
-	percentiles_exact = compute_percentiles_exact(posterior,[0.1,0.25,0.5,0.75,0.9])
-	percentiles_exact_result = percentiles_exact['result']
-	percentiles_exact_runtime = percentiles_exact['runtime']
-
-	percentiles_exact_string = '<br> Percentiles of posterior distribution (exact): <br> '+percentiles_exact_runtime +'<br>'#very inelegant to have html in here
-	for x in percentiles_exact_result:
-		percentiles_exact_string += str(x) + '<br>'
-
-	# percentiles, mcmc
+	#percentiles
 	percentiles_mcmc_string = ''
 	print("running percentiles mcmc", file=sys.stderr)
 	percentiles_mcmc = mcmc_percentiles(posterior,[0.1,0.25,0.5,0.75,0.9])
 	percentiles_mcmc_result = percentiles_mcmc['result']
 	percentiles_mcmc_runtime = percentiles_mcmc['runtime']
 
-	percentiles_mcmc_string = '<br> Percentiles of posterior distribution (MCMC): <br>'+percentiles_mcmc_runtime+'<br>'
+	percentiles_mcmc_string = percentiles_mcmc_runtime+'<br>'
 	for x in percentiles_mcmc_result:
 		percentiles_mcmc_string += str(x[0]) +', '+ str(np.around(x,3)[1]) + '<br>'
+	return percentiles_mcmc_string
 
-	return percentiles_exact_string + percentiles_mcmc_string
+def percentiles_out_exact(dict):
+	# Parse inputs
+	user_inputs = parse_user_inputs(dict)
 
+	prior = user_inputs['prior']
+	likelihood = user_inputs['likelihood']	
+	
+	# compute posterior pdf
+	posterior = update(prior,likelihood)
+
+	#percentiles
+	percentiles_exact_string = ''
+	print("running percentiles exact", file=sys.stderr)
+	percentiles_exact = compute_percentiles_exact(posterior,[0.1,0.25,0.5,0.75,0.9])
+	percentiles_exact_result = percentiles_exact['result']
+	percentiles_exact_runtime = percentiles_exact['runtime']
+
+	percentiles_exact_string = percentiles_exact_runtime +'<br>'
+	for x in percentiles_exact_result:
+		percentiles_exact_string += str(x) + '<br>'
+	return percentiles_exact_string
 
 # prior = stats.lognorm(scale=math.exp(2),s=2)
 # likelihood = stats.norm(loc=5,scale=15)

@@ -29,10 +29,18 @@
 
 {{graph|safe}}
 
-<div id=percentiles_message></div>
+<br>
 
-<div id="percentiles_status"></div>
-<div id="percentiles_result"></div>
+<div id=percentiles_exact_message></div>
+<div id="percentiles_exact_status"></div>
+<div id="percentiles_exact_result"></div>
+
+<br>
+
+<div id=percentiles_mcmc_message></div>
+<div id="percentiles_mcmc_status"></div>
+<div id="percentiles_mcmc_result"></div>
+
 
 <script>
 
@@ -48,7 +56,7 @@ function httpGetAsync(theUrl, callback){
     xmlHttp.send(null);
 }
 
-function check_on_background_task(thread_id) {
+function check_on_background_task(thread_id,exact_or_mcmc) {
     console.log('check function called!');
         httpGetAsync('/get-result/'+thread_id, function(data)
         {
@@ -56,22 +64,27 @@ function check_on_background_task(thread_id) {
             d.result = String(d.result);
             d.status = String(d.status);
 
-          document.getElementById("percentiles_status").innerHTML = "status: "+d.status;
+          document.getElementById("percentiles_"+exact_or_mcmc+"_status").innerHTML = "status: "+d.status;
             if (d.status == 'RUNNING' || d.status == 'null' ) {
-                setTimeout(check_on_background_task,1000,thread_id);
+                setTimeout(check_on_background_task,1000,thread_id,exact_or_mcmc); //recursive call
             }
             else if (d.status == 'done') {
-                document.getElementById("percentiles_result").innerHTML = "result: "+d.result;
+                document.getElementById("percentiles_"+exact_or_mcmc+"_result").innerHTML = "result: "+d.result;
             }        
         });
 }
 
 //two curly braces to use parameters passed into render_template
 if ( {{check_on_background_task}}==1 ) {
-check_on_background_task( {{thread_id}} )
+check_on_background_task( {{thread_id_mcmc}},'mcmc')
+check_on_background_task( {{thread_id_exact}},'exact')
+
 }
+
 if ({{check_on_background_task}}==1) {
-document.getElementById("percentiles_message").innerHTML = "Percentiles of posterior distribution will be shown below:"
+document.getElementById("percentiles_exact_message").innerHTML = "Percentiles of posterior distribution (exact):";
+document.getElementById("percentiles_mcmc_message").innerHTML = "Percentiles of posterior distribution (MCMC):"
+
 }
 
 
