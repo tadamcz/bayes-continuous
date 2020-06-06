@@ -65,7 +65,7 @@ function check_on_background_task(thread_id,exact_or_mcmc) {
             d.status = String(d.status);
 
           document.getElementById("percentiles_"+exact_or_mcmc+"_status").innerHTML = "status: "+d.status;
-            if (d.status == 'RUNNING' || d.status == 'null' ) {
+            if (d.status == 'RUNNING') {
                 setTimeout(check_on_background_task,1000,thread_id,exact_or_mcmc); //recursive call
             }
             else if (d.status == 'done') {
