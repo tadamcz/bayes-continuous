@@ -58,7 +58,7 @@ def label_form(form):
 def submit():
 	form = DistrForm2()
 	label_form(form)
-	return render_template('hw.html',form=form, check_on_background_task=0)
+	return render_template('hw.html',form=form,check_on_background_task=0,thread_id_exact=None,thread_id_mcmc=None)
 
 @app.route("/", methods=['POST'])
 def hello():
