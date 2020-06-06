@@ -28,15 +28,10 @@ class DistrForm(FlaskForm):
 	beta = FormField(TwoParamsForm)
 	uniform = FormField(TwoParamsForm)
 
-class PercentileForm(FlaskForm):
-	compute_percentiles_exact = BooleanField('Compute percentiles of posterior distribution (exact)')
-	compute_percentiles_mcmc = BooleanField('Approximate percentiles of posterior distribution using MCMC')
-
 
 class DistrForm2(FlaskForm):
 	prior = FormField(DistrForm)
 	likelihood = FormField(DistrForm)
-	percentiles = FormField(PercentileForm)
  
 
 def label_form(form):
@@ -63,7 +58,7 @@ def label_form(form):
 def submit():
 	form = DistrForm2()
 	label_form(form)
-	return render_template('hw.html',form=form, check=0)
+	return render_template('hw.html',form=form, check_on_background_task=0)
 
 @app.route("/", methods=['POST'])
 def hello():
@@ -73,12 +68,9 @@ def hello():
 	my_input = request.form
 	my_input_parsed = bayes.parse_user_inputs(my_input)
 	graph = bayes.graph_out(my_input)
-	if  my_input_parsed['compute_percentiles_any']:
-		thread_id = str(random.randint(0, 10000))
-		executor.submit_stored(thread_id, bayes.percentiles_out, my_input)
-		return render_template('hw.html',form=form,graph=graph,thread_id=thread_id,check=1)
-	return render_template('hw.html',form=form,graph=graph,check=0)
-	# return form+result
+	thread_id = str(random.randint(0, 10000))
+	executor.submit_stored(thread_id, bayes.percentiles_out, my_input)
+	return render_template('hw.html',form=form,graph=graph,thread_id=thread_id,check_on_background_task=1)
 
 @app.route('/get-result/<thread_id>')
 def get_result(thread_id):

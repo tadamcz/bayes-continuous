@@ -23,19 +23,16 @@
 
 <div id = "likelihood-uniform-field"> {{ form.likelihood.uniform.label }} {{ form.likelihood.uniform }} </div>
 
-<br><div><b>{{ form.percentiles.label }}</b> </div>
-<b>{{ form.percentiles }} </b>
-
 <br>
 	<input type="submit"> 
 </form>
 
 {{graph|safe}}
 
-<br>Percentiles:
+<div id=percentiles_message></div>
 
-<div id="status"></div>
-<div id="result"></div>
+<div id="percentiles_status"></div>
+<div id="percentiles_result"></div>
 
 <script>
 
@@ -51,7 +48,7 @@ function httpGetAsync(theUrl, callback){
     xmlHttp.send(null);
 }
 
-function check(thread_id) {
+function check_on_background_task(thread_id) {
     console.log('check function called!');
         httpGetAsync('/get-result/'+thread_id, function(data)
         {
@@ -59,21 +56,23 @@ function check(thread_id) {
             d.result = String(d.result);
             d.status = String(d.status);
 
-          document.getElementById("status").innerHTML = "status: "+d.status;
+          document.getElementById("percentiles_status").innerHTML = "status: "+d.status;
             if (d.status == 'RUNNING' || d.status == 'null' ) {
-                setTimeout(check,1000,thread_id);
+                setTimeout(check_on_background_task,1000,thread_id);
             }
             else if (d.status == 'done') {
-                document.getElementById("result").innerHTML = "result: "+d.result;
+                document.getElementById("percentiles_result").innerHTML = "result: "+d.result;
             }        
         });
 }
 
-//two curly braces to use parameter passed into render_template
-if ({{check}}==1) {
-check({{thread_id}})
+//two curly braces to use parameters passed into render_template
+if ( {{check_on_background_task}}==1 ) {
+check_on_background_task( {{thread_id}} )
 }
-
+if ({{check_on_background_task}}==1) {
+document.getElementById("percentiles_message").innerHTML = "Percentiles of posterior distribution will be shown below:"
+}
 
 
 

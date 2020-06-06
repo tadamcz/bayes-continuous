@@ -91,23 +91,8 @@ def parse_user_inputs(dict):
 		loc = dict["likelihood-uniform-param1"]
 		scale = dict["likelihood-uniform-param2"] - loc
 		likelihood = stats.uniform(loc,scale)
-
-	compute_percentiles_exact = False
-	compute_percentiles_mcmc = False
 	
-	if 'percentiles-compute_percentiles_exact' in dict.keys():
-		compute_percentiles_exact = True
-	
-	if 'percentiles-compute_percentiles_mcmc' in dict.keys():
-		compute_percentiles_mcmc = True
-
-	compute_perentiles_any = compute_percentiles_mcmc or compute_percentiles_exact
-	
-	return {'prior':prior,
-				'likelihood':likelihood,
-				'compute_percentiles_exact':compute_percentiles_exact,
-				'compute_percentiles_mcmc':compute_percentiles_mcmc,
-				'compute_percentiles_any':compute_perentiles_any}
+	return {'prior':prior, 'likelihood':likelihood}
 
 def plot_pdfs(dict_of_dists,x_from=-5,x_to=5):
 	x = np.linspace(x_from,x_to,(x_to-x_from)*10)
@@ -214,38 +199,32 @@ def percentiles_out(dict):
 	# Parse inputs
 	user_inputs = parse_user_inputs(dict)
 
-	compute_percentiles_exact_setting = user_inputs['compute_percentiles_exact']
-	compute_percentiles_mcmc_setting = user_inputs['compute_percentiles_mcmc']
-
 	prior = user_inputs['prior']
-	likelihood = user_inputs['likelihood']
-	
+	likelihood = user_inputs['likelihood']	
 	# compute posterior pdf
 	posterior = update(prior,likelihood)
 
 	# percentiles, exact
 	percentiles_exact_string = ''
-	if compute_percentiles_exact_setting:
-		print("running percentiles exact", file=sys.stderr)
-		percentiles_exact = compute_percentiles_exact(posterior,[0.1,0.25,0.5,0.75,0.9])
-		percentiles_exact_result = percentiles_exact['result']
-		percentiles_exact_runtime = percentiles_exact['runtime']
+	print("running percentiles exact", file=sys.stderr)
+	percentiles_exact = compute_percentiles_exact(posterior,[0.1,0.25,0.5,0.75,0.9])
+	percentiles_exact_result = percentiles_exact['result']
+	percentiles_exact_runtime = percentiles_exact['runtime']
 
-		percentiles_exact_string = '<br> Percentiles of posterior distribution (exact): <br> '+percentiles_exact_runtime +'<br>'#very inelegant to have html in here
-		for x in percentiles_exact_result:
-			percentiles_exact_string += str(x) + '<br>'
+	percentiles_exact_string = '<br> Percentiles of posterior distribution (exact): <br> '+percentiles_exact_runtime +'<br>'#very inelegant to have html in here
+	for x in percentiles_exact_result:
+		percentiles_exact_string += str(x) + '<br>'
 
 	# percentiles, mcmc
 	percentiles_mcmc_string = ''
-	if compute_percentiles_mcmc_setting:
-		print("running percentiles mcmc", file=sys.stderr)
-		percentiles_mcmc = mcmc_percentiles(posterior,[0.1,0.25,0.5,0.75,0.9])
-		percentiles_mcmc_result = percentiles_mcmc['result']
-		percentiles_mcmc_runtime = percentiles_mcmc['runtime']
+	print("running percentiles mcmc", file=sys.stderr)
+	percentiles_mcmc = mcmc_percentiles(posterior,[0.1,0.25,0.5,0.75,0.9])
+	percentiles_mcmc_result = percentiles_mcmc['result']
+	percentiles_mcmc_runtime = percentiles_mcmc['runtime']
 
-		percentiles_mcmc_string = '<br> Percentiles of posterior distribution (MCMC): <br>'+percentiles_mcmc_runtime+'<br>'
-		for x in percentiles_mcmc_result:
-			percentiles_mcmc_string += str(x[0]) +', '+ str(np.around(x,3)[1]) + '<br>'
+	percentiles_mcmc_string = '<br> Percentiles of posterior distribution (MCMC): <br>'+percentiles_mcmc_runtime+'<br>'
+	for x in percentiles_mcmc_result:
+		percentiles_mcmc_string += str(x[0]) +', '+ str(np.around(x,3)[1]) + '<br>'
 
 	return percentiles_exact_string + percentiles_mcmc_string
 
