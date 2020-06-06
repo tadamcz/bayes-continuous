@@ -30,7 +30,53 @@
 	<input type="submit"> 
 </form>
 
+{{graph|safe}}
+
+<br>Percentiles:
+
+<div id="status"></div>
+<div id="result"></div>
+
 <script>
+
+
+function httpGetAsync(theUrl, callback){
+    console.log("get request function called");
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function() { 
+        if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+            callback(xmlHttp.responseText);
+    };
+    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+    xmlHttp.send(null);
+}
+
+function check(thread_id) {
+    console.log('check function called!');
+        httpGetAsync('/get-result/'+thread_id, function(data)
+        {
+          var d = JSON.parse(data);
+            d.result = String(d.result);
+            d.status = String(d.status);
+
+          document.getElementById("status").innerHTML = "status: "+d.status;
+            if (d.status == 'RUNNING' || d.status == 'null' ) {
+                setTimeout(check,1000,thread_id);
+            }
+            else if (d.status == 'done') {
+                document.getElementById("result").innerHTML = "result: "+d.result;
+            }        
+        });
+}
+
+//two curly braces to use parameter passed into render_template
+if ({{check}}==1) {
+check({{thread_id}})
+}
+
+
+
+
 function display_fields_prior() {
   var x = document.getElementById("prior-select_distribution_family").value;
   

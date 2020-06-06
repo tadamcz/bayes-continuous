@@ -100,11 +100,14 @@ def parse_user_inputs(dict):
 	
 	if 'percentiles-compute_percentiles_mcmc' in dict.keys():
 		compute_percentiles_mcmc = True
+
+	compute_perentiles_any = compute_percentiles_mcmc or compute_percentiles_exact
 	
 	return {'prior':prior,
 				'likelihood':likelihood,
 				'compute_percentiles_exact':compute_percentiles_exact,
-				'compute_percentiles_mcmc':compute_percentiles_mcmc}
+				'compute_percentiles_mcmc':compute_percentiles_mcmc,
+				'compute_percentiles_any':compute_perentiles_any}
 
 def plot_pdfs(dict_of_dists,x_from=-5,x_to=5):
 	x = np.linspace(x_from,x_to,(x_to-x_from)*10)
@@ -183,18 +186,19 @@ def compute_percentiles_exact(distr,percentiles_list):
 	return {'result':percentiles_result,'runtime':description_string}
 
 
+
 plt.rcParams.update({'font.size': 16})
-def out_html(dict):
-	# Parse inputs
+def graph_out(dict):
+	# parse inputs
 	user_inputs = parse_user_inputs(dict)
 	prior = user_inputs['prior']
 	likelihood = user_inputs['likelihood']
-	compute_percentiles_exact_setting = user_inputs['compute_percentiles_exact']
-	compute_percentiles_mcmc_setting = user_inputs['compute_percentiles_mcmc']
-
 	
-	# Plot
+	# compute posterior pdf
 	posterior = update(prior,likelihood)
+
+
+	# Plot
 	plot = plot_pdfs_bayes_update(prior,likelihood,posterior)
 	plot = mpld3.fig_to_html(plot)
 
@@ -202,7 +206,22 @@ def out_html(dict):
 	ev = np.around(posterior.expect(),3)
 	ev_string = 'Posterior expected value: '+str(ev)+'<br>'
 	
+	return plot+ev_string
 
+
+
+def percentiles_out(dict):
+	# Parse inputs
+	user_inputs = parse_user_inputs(dict)
+
+	compute_percentiles_exact_setting = user_inputs['compute_percentiles_exact']
+	compute_percentiles_mcmc_setting = user_inputs['compute_percentiles_mcmc']
+
+	prior = user_inputs['prior']
+	likelihood = user_inputs['likelihood']
+	
+	# compute posterior pdf
+	posterior = update(prior,likelihood)
 
 	# percentiles, exact
 	percentiles_exact_string = ''
@@ -228,7 +247,7 @@ def out_html(dict):
 		for x in percentiles_mcmc_result:
 			percentiles_mcmc_string += str(x[0]) +', '+ str(np.around(x,3)[1]) + '<br>'
 
-	return plot + ev_string + percentiles_exact_string + percentiles_mcmc_string
+	return percentiles_exact_string + percentiles_mcmc_string
 
 
 # prior = stats.lognorm(scale=math.exp(2),s=2)
