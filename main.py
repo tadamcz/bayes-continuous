@@ -32,6 +32,7 @@ class DistrForm(FlaskForm):
 class DistrForm2(FlaskForm):
 	prior = FormField(DistrForm)
 	likelihood = FormField(DistrForm)
+	graph_range = FormField(TwoParamsForm,"Override default settings for graph domain? (optional)")
  
 
 def label_form(form):
@@ -53,6 +54,10 @@ def label_form(form):
 
 	form.likelihood.beta.param1.label = "alpha"
 	form.likelihood.beta.param2.label = "beta"
+
+	form.graph_range.param1.label = "From"
+	form.graph_range.param2.label = "To"
+
 
 @app.route('/')
 def submit():

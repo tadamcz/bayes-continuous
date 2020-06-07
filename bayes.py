@@ -51,14 +51,15 @@ def parse_user_inputs(dict):
 	for key in dict.keys():
 		cond1 = 'likelihood' in key
 		cond2 = 'prior' in key
-		yes = cond1 or cond2
+		cond3 = 'graph_range' in key
+		yes = cond1 or cond2 or cond3
 
-		cond3 = 'percentiles' in key
-		cond4 = 'family' in key
-		cond5 = 'csrf' in key
-		cond6 = len(dict[key])==0
+		cond1 = 'percentiles' in key
+		cond2 = 'family' in key
+		cond3 = 'csrf' in key
+		cond4 = len(dict[key])==0
 
-		no = cond4 or cond5 or cond6
+		no = cond1 or cond2 or cond3 or cond4
 
 		if yes and not no:
 			# debugging print(key, file=sys.stderr)
@@ -93,8 +94,12 @@ def parse_user_inputs(dict):
 		loc = dict["likelihood-uniform-param1"]
 		scale = dict["likelihood-uniform-param2"] - loc
 		likelihood = stats.uniform(loc,scale)
+
+	override_graph_range = False
+	if dict['graph_range-param1'] !='' and dict['graph_range-param2'] !='':
+		override_graph_range = (dict['graph_range-param1'],dict['graph_range-param2'])
 	
-	return {'prior':prior, 'likelihood':likelihood}
+	return {'prior':prior, 'likelihood':likelihood, 'override_graph_range':override_graph_range}
 
 def plot_pdfs(dict_of_dists,x_from,x_to):
 	if x_from:
@@ -211,6 +216,7 @@ def graph_out(dict):
 	user_inputs = parse_user_inputs(dict)
 	prior = user_inputs['prior']
 	likelihood = user_inputs['likelihood']
+	override_graph_range = user_inputs['override_graph_range']
 	
 	# compute posterior pdf
 	s = time.time()
@@ -219,7 +225,10 @@ def graph_out(dict):
 	print(e-s,'seconds to get posterior pdf',file=sys.stderr)
 
 	# Plot
-	x_from , x_to = intelligently_set_graph_domain(posterior)
+	if override_graph_range:
+		x_from,x_to = override_graph_range
+	else:
+		x_from , x_to = intelligently_set_graph_domain(posterior)
 
 	s = time.time()
 	plot = plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=x_from,x_to=x_to)
