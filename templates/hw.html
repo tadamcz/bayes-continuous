@@ -29,17 +29,20 @@
 
 {{graph|safe}}
 
+{% if check_on_background_task==1 %}
 <br>
 
 <div id=percentiles_exact_message></div>
-<div id="percentiles_exact_status"></div>
+<div id="percentiles_exact_status">Status: waiting for status</div>
 <div id="percentiles_exact_result"></div>
 
 <br>
 
 <div id=percentiles_mcmc_message></div>
-<div id="percentiles_mcmc_status"></div>
+<div id="percentiles_mcmc_status">Status: waiting for status</div>
 <div id="percentiles_mcmc_result"></div>
+
+{% endif %}
 
 
 <script>
@@ -58,8 +61,7 @@ function httpGetAsync(theUrl, callback){
 
 function check_on_background_task(thread_id,exact_or_mcmc) {
     console.log('check function called!');
-    document.getElementById("percentiles_"+exact_or_mcmc+"_status").innerHTML = "status: waiting for status" 
-    
+
         httpGetAsync('/get-result/'+thread_id, function(data)
         {
           var d = JSON.parse(data);
