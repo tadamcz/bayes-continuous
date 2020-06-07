@@ -143,7 +143,7 @@ def mcmc_sample(distr,nwalkers=10,nruns=500):
 	sampler = emcee.EnsembleSampler(nwalkers, 1, log_prob)
 
 	# burn-in
-	state = sampler.run_mcmc(p0, 100)
+	state = sampler.run_mcmc(p0, 1000)
 	sampler.reset()
 	
 	# Main run
@@ -174,7 +174,7 @@ def mcmc_percentiles(distr,percentiles_list):
 def compute_percentiles_exact(distr,percentiles_list):
 	start = time.time()
 	try:
-		percentiles_result = np.around(distr.ppf(percentiles_list),3)
+		percentiles_result = np.around(distr.ppf(percentiles_list),2)
 	except RuntimeError:
 		return {'result':'','runtime':'RuntimeError'}
 	end = time.time()
@@ -237,7 +237,7 @@ def graph_out(dict):
 	print(e-s,'seconds to make plot', file=sys.stderr)
 
 	# Expected value
-	ev = np.around(posterior.expect(),3)
+	ev = np.around(posterior.expect(),2)
 	ev_string = 'Posterior expected value: '+str(ev)+'<br>'
 	
 	return plot+ev_string
@@ -261,7 +261,7 @@ def percentiles_out_mcmc(dict):
 
 	percentiles_mcmc_string = percentiles_mcmc_runtime+'<br>'
 	for x in percentiles_mcmc_result:
-		percentiles_mcmc_string += str(x[0]) +', '+ str(np.around(x,3)[1]) + '<br>'
+		percentiles_mcmc_string += str(x[0]) +', '+ str(np.around(x,2)[1]) + '<br>'
 	return percentiles_mcmc_string
 
 def percentiles_out_exact(dict):
