@@ -58,18 +58,27 @@ function httpGetAsync(theUrl, callback){
 
 function check_on_background_task(thread_id,exact_or_mcmc) {
     console.log('check function called!');
+    document.getElementById("percentiles_"+exact_or_mcmc+"_status").innerHTML = "status: waiting for status" 
+    
         httpGetAsync('/get-result/'+thread_id, function(data)
         {
           var d = JSON.parse(data);
             d.result = String(d.result);
             d.status = String(d.status);
 
-          document.getElementById("percentiles_"+exact_or_mcmc+"_status").innerHTML = "status: "+d.status;
-            if (d.status == 'RUNNING') {
+            
+            if (d.status == 'done') {
+              document.getElementById("percentiles_"+exact_or_mcmc+"_status").innerHTML = "status: "+d.status;
+
+                document.getElementById("percentiles_"+exact_or_mcmc+"_result").innerHTML = "result: "+d.result;
+            }
+            else if (d.status == 'RUNNING') {
+                document.getElementById("percentiles_"+exact_or_mcmc+"_status").innerHTML = "status: "+d.status;
+
                 setTimeout(check_on_background_task,1000,thread_id,exact_or_mcmc); //recursive call
             }
-            else if (d.status == 'done') {
-                document.getElementById("percentiles_"+exact_or_mcmc+"_result").innerHTML = "result: "+d.result;
+            else if (d.status == 'null') {
+                setTimeout(check_on_background_task,1000,thread_id,exact_or_mcmc); //recursive call; this shouldn't be needed but for heroku weirdness
             }        
         });
 }
