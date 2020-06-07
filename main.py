@@ -64,7 +64,6 @@ def submit():
 def hello():
 	form = DistrForm2()
 	label_form(form)
-	# form_str = render_template('hw.html',form=form)
 	my_input = request.form
 	my_input_parsed = bayes.parse_user_inputs(my_input)
 	graph = bayes.graph_out(my_input)

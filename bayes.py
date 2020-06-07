@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
 from scipy import integrate
+from scipy import optimize
 import sys
+import time
 
 import mpld3
 import emcee
@@ -94,8 +96,14 @@ def parse_user_inputs(dict):
 	
 	return {'prior':prior, 'likelihood':likelihood}
 
-def plot_pdfs(dict_of_dists,x_from=-5,x_to=5):
-	x = np.linspace(x_from,x_to,(x_to-x_from)*10)
+def plot_pdfs(dict_of_dists,x_from,x_to):
+	if x_from:
+		x = np.linspace(x_from,x_to,100)
+	else:
+		x = np.linspace(-50,50,100)
+
+
+
 	fig, ax = plt.subplots()
 	for dist in dict_of_dists:
 		ax.plot(x,dict_of_dists[dist].pdf(x),label=dist)
@@ -116,7 +124,6 @@ def plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=-50,x_to=50):
 						,x_from,x_to)
 	return plot
 
-import time
 def mcmc_sample(distr,nwalkers=10,nruns=500):
 	ndim = 1
 	location_first_guess = distr.expect()
@@ -170,6 +177,32 @@ def compute_percentiles_exact(distr,percentiles_list):
 	percentiles_result = zip(percentiles_list,percentiles_result)
 	return {'result':percentiles_result,'runtime':description_string}
 
+def intelligently_set_graph_domain(distr):
+	mean = distr.expect()
+	
+	y_val = 0.01
+	max_domain = 1e6
+
+	def f(x):
+		return distr.pdf(x)-y_val
+	
+	try:
+		s = time.time()
+		left_root = optimize.root_scalar(f,rtol=.3,bracket=(-max_domain,mean))
+		right_root = optimize.root_scalar(f,rtol=.3,bracket=(mean,max_domain))
+		e = time.time()
+		print(e-s,'seconds to find roots', file=sys.stderr)
+		print(left_root,file=sys.stderr)
+		print(right_root,file=sys.stderr)
+	except ValueError:
+		return None,None
+
+	if left_root.converged and right_root.converged:
+		left_root, right_root= left_root.root, right_root.root
+		width = right_root-left_root
+		buffer = 0.2*width
+		left_root, right_root = left_root-buffer, right_root + buffer
+		return left_root,right_root
 
 
 plt.rcParams.update({'font.size': 16})
@@ -180,12 +213,19 @@ def graph_out(dict):
 	likelihood = user_inputs['likelihood']
 	
 	# compute posterior pdf
+	s = time.time()
 	posterior = update(prior,likelihood)
-
+	e = time.time()
+	print(e-s,'seconds to get posterior pdf',file=sys.stderr)
 
 	# Plot
-	plot = plot_pdfs_bayes_update(prior,likelihood,posterior)
+	x_from , x_to = intelligently_set_graph_domain(posterior)
+
+	s = time.time()
+	plot = plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=x_from,x_to=x_to)
 	plot = mpld3.fig_to_html(plot)
+	e = time.time()
+	print(e-s,'seconds to make plot', file=sys.stderr)
 
 	# Expected value
 	ev = np.around(posterior.expect(),3)
