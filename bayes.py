@@ -173,14 +173,15 @@ def mcmc_percentiles(distr,percentiles_list):
 
 def compute_percentiles_exact(distr,percentiles_list):
 	start = time.time()
-	try:
-		percentiles_result = np.around(distr.ppf(percentiles_list),2)
-	except RuntimeError:
-		return {'result':'','runtime':'RuntimeError'}
+	result = {}
+	for p in percentiles_list:
+		try:
+			result[p] = np.around(distr.ppf(p),2)
+		except RuntimeError:
+			result[p] = 'RuntimeError: numerical method didn\'t converge'
 	end = time.time()
 	description_string = 'Computed in '+str(np.around(end-start,1))+' seconds'
-	percentiles_result = zip(percentiles_list,percentiles_result)
-	return {'result':percentiles_result,'runtime':description_string}
+	return {'result':result,'runtime':description_string}
 
 def intelligently_set_graph_domain(distr):
 	mean = distr.expect()
@@ -283,7 +284,7 @@ def percentiles_out_exact(dict):
 
 	percentiles_exact_string = percentiles_exact_runtime +'<br>'
 	for x in percentiles_exact_result:
-		percentiles_exact_string += str(x) + '<br>'
+		percentiles_exact_string += str(x) + ', ' + str(percentiles_exact_result[x]) + '<br>'
 	return percentiles_exact_string
 
 # prior = stats.lognorm(scale=math.exp(2),s=2)
