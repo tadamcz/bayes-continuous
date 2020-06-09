@@ -17,6 +17,19 @@ def is_a_distribution(obj):
 		return True
 	return False
 
+def intersect_intervals(two_tuples):
+	d1 , d2 = two_tuples
+
+	d1_left,d1_right = d1[0],d1[1]
+	d2_left,d2_right = d2[0],d2[1]
+
+	if d1_right < d2_left or d2_right < d2_left:
+		raise ValueError("the distributions have no overlap")
+	
+	intersect_left,intersect_right = max(d1_left,d2_left),min(d1_right,d2_right)
+
+	return intersect_left,intersect_right
+
 class Product_pdf(stats.rv_continuous):
 	def __init__(self,d1,d2):
 		super(Product_pdf,self).__init__()
@@ -26,12 +39,84 @@ class Product_pdf(stats.rv_continuous):
 			raise TypeError("Second argument must be a distribution or a number")
 		self.d1= d1
 		self.d2= d2
+
+		'''
+		defining the support of the product pdf is important
+		because, when we use a numerical equation solver on the CDF,
+		it will only need to look for solutions in the support, instead
+		of on the entire real line.
+		'''
+		a1, b1 = d1.support()
+
+		if is_a_distribution(d2):
+			a2,b2 = d2.support()
+		else:
+			a2,b2 = -np.inf,np.inf
+		
+		self.a , self.b = intersect_intervals([(a1,b1),(a2,b2)])
+
+		'''
+		the mode is used in my custom definition of _cdf() below.
+		it's important that we don't run optimize.fmin every time cdf 
+		is called, so I run it during init.
+		'''
+		initial_guess_for_mode = self.d1.expect()
+		self.mode = optimize.fmin(self.neg_pdf,initial_guess_for_mode)
+
+
 	def _pdf(self,x):
 		if type(self.d2) is float:
 			ret = self.d1.pdf(x)*self.d2
 		if type(self.d2) is stats._distn_infrastructure.rv_frozen:
 			ret = self.d1.pdf(x)*self.d2.pdf(x)
 		return ret
+
+	def neg_pdf(self,x):
+		return -self.pdf(x)
+
+	def _cdf(self,x):
+		'''
+
+		https://stackoverflow.com/questions/47193045/why-does-integrate-quadlambda-x-xexp-x2-2-sqrt2pi-0-0-100000-give-0
+		https://stackoverflow.com/questions/34877147/limits-of-quad-integration-in-scipy-with-np-inf
+		
+		if you try
+
+		for x in range(100):
+			print('cdf(',x,') = ',distr.cdf(x))
+
+		CDF goes to 1 and then becomes
+		a tiny value or 0. Due to problem of integrating over an area that
+		is mostly 0. See stackoverflow links above.
+
+		This creates problems when trying to use numerical equation solvers
+		on the CDF. e.g. a bisection algo will first try CDF(very_large_number)
+		and this will return 0.
+		
+		you can point quad to the region of the function
+		where the peak(s) is/are with by supplying the points argument 
+		(points where 'where local difficulties of the integrand may occur'
+		according to the documentation)
+		
+		But you can't pass points when one of the integration bounds
+		is infinite. 
+		
+		My solution: do the integration in two parts.
+		First the left, then the right.
+		Won't work for every function, but should cover many cases.
+		'''
+
+		mode = self.mode
+		a,b = self.support()
+
+		if x<mode:
+			# just return the cdf using normal method
+			return super(Product_pdf,self)._cdf(x)
+		else:
+			integral_left = integrate.quad(self.pdf,a,mode)[0]
+			integral_right = integrate.quad(self.pdf,mode,x)[0]
+			return integral_left + integral_right
+
 
 def normalize(distr):
 	integral = integrate.quad(distr.pdf,-np.inf,np.inf)[0]
@@ -174,16 +259,25 @@ def mcmc_percentiles(distr,percentiles_list):
 def compute_percentiles_exact(distr,percentiles_list):
 	start = time.time()
 	result = {}
+	print('Running compute_percentiles_exact. Support: ',distr.support(),file=sys.stderr)
 	for p in percentiles_list:
+		print("trying to compute the",p,"th percentile")
 		try:
 			result[p] = np.around(distr.ppf(p),2)
-		except RuntimeError:
-			result[p] = 'RuntimeError: numerical method didn\'t converge'
+		except RuntimeError as e:
+			result[p] = e
 	end = time.time()
 	description_string = 'Computed in '+str(np.around(end-start,1))+' seconds'
 	return {'result':result,'runtime':description_string}
 
 def intelligently_set_graph_domain(distr):
+	left_default,right_default = -50,50
+
+
+	d_left,d_right = distr.support()
+
+	left_default,right_default = intersect_intervals([(left_default,right_default),(d_left,d_right)])
+
 	mean = distr.expect()
 	
 	y_val = 0.01
@@ -192,6 +286,7 @@ def intelligently_set_graph_domain(distr):
 	def f(x):
 		return distr.pdf(x)-y_val
 	
+
 	try:
 		s = time.time()
 		left_root = optimize.root_scalar(f,rtol=.3,bracket=(-max_domain,mean))
@@ -201,7 +296,8 @@ def intelligently_set_graph_domain(distr):
 		print(left_root,file=sys.stderr)
 		print(right_root,file=sys.stderr)
 	except ValueError:
-		return None,None
+		print("intelligently_set_graph_domain failed, using defaults", file=sys.stderr)
+		return left_default,right_default
 
 	if left_root.converged and right_root.converged:
 		left_root, right_root= left_root.root, right_root.root
@@ -287,9 +383,11 @@ def percentiles_out_exact(dict):
 		percentiles_exact_string += str(x) + ', ' + str(percentiles_exact_result[x]) + '<br>'
 	return percentiles_exact_string
 
-# prior = stats.lognorm(scale=math.exp(2),s=2)
-# likelihood = stats.norm(loc=5,scale=15)
-# posterior = update(prior,likelihood)
+prior = stats.lognorm(scale=5,s=8)
+likelihood = stats.norm(loc=10,scale=3)
+posterior = update(prior,likelihood)
+intelligently_set_graph_domain(posterior)
+print(posterior.support())
 
 # if __name__ == "__main__":
 # 	model = pm.Model()

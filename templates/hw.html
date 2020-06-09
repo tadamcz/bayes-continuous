@@ -41,9 +41,9 @@
 
 <br>
 
-<div id=percentiles_mcmc_message></div>
+<!-- <div id=percentiles_mcmc_message></div>
 <div id="percentiles_mcmc_status">Status: waiting for status</div>
-<div id="percentiles_mcmc_result"></div>
+<div id="percentiles_mcmc_result"></div> -->
 
 {% endif %}
 
@@ -90,13 +90,13 @@ function check_on_background_task(thread_id,exact_or_mcmc) {
 
 //two curly braces to use parameters passed into render_template
 if ( {{check_on_background_task}}==1 ) {
-check_on_background_task( {{thread_id_mcmc}},'mcmc');
+// check_on_background_task( {{thread_id_mcmc}},'mcmc');
 check_on_background_task( {{thread_id_exact}},'exact');
 }
 
 if ({{check_on_background_task}}==1) {
-document.getElementById("percentiles_exact_message").innerHTML = "Percentiles of posterior distribution (exact):";
-document.getElementById("percentiles_mcmc_message").innerHTML = "Percentiles of posterior distribution (MCMC):"
+document.getElementById("percentiles_exact_message").innerHTML = "Percentiles of posterior distribution:";
+// document.getElementById("percentiles_mcmc_message").innerHTML = "Percentiles of posterior distribution (MCMC):"
 
 }
 
