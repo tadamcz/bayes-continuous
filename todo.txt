@@ -1,8 +1,19 @@
-figure out what's up with ppf function slowness
-form validation
-refactor
-	https://pypi.org/project/pep8/
-new ways to inputs distributions
-	kernel density estimation
-	fit distribution to quartiles/deciles
-	additional distribution types
+* faster way to intelligently_set_graph_domain
+    * get the mean and sd of prior and likelihood: should be fast because closed form expression
+    * get mean +/- 3sd for prior and likelihood. Take the union of these intervals
+    * take the union of prior and likelihood supports
+    * take the intersection of supports and mean+sd intervals
+    * add some buffer
+* refactor
+	* https://pypi.org/project/pep8/
+    * put normalization inside product pdf class
+    * every time cdf is called, store the value in a dict, so that once we found a point where the cdf is ~1, the cdf method can just return 1 without doing integration
+* new ways to inputs distributions
+	* kernel density estimation
+	* fit distribution to quartiles/deciles
+	* additional distribution types
+* advanced settings
+    * move graph domain override into advanced
+    allow setting custom percentiles
+* form validation
+* pass parameters in URL
