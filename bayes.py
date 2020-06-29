@@ -9,12 +9,7 @@ import time
 
 import mpld3
 
-def is_a_distribution(obj):
-	if issubclass(type(obj),stats.rv_continuous):
-		return True
-	if isinstance(obj,stats._distn_infrastructure.rv_frozen):
-		return True
-	return False
+ppf_tol = 0.01
 
 def intersect_intervals(two_tuples):
 	d1 , d2 = two_tuples
@@ -82,14 +77,14 @@ def split_integral(f,splitpoint,integrate_to,support=(-np.inf,np.inf)):
 class Posterior_scipyrv(stats.rv_continuous):
 	def __init__(self,d1,d2):
 		super(Posterior_scipyrv, self).__init__()
-		if not is_a_distribution(d1):
-			raise TypeError("First argument must be a distribution")
-		if type(d2) is not float and type(d2) is not int and not is_a_distribution(d2):
-			raise TypeError("Second argument must be a distribution or a number")
+
 		self.d1= d1
 		self.d2= d2
 
 		self.cdf_lookup = {}
+
+		self.xtol = ppf_tol #The tolerance for fixed point calculation for generic ppf.
+
 		'''
 		defining the support of the product pdf is important
 		because, when we use a numerical equation solver on the CDF,
@@ -98,10 +93,7 @@ class Posterior_scipyrv(stats.rv_continuous):
 		'''
 		a1, b1 = d1.support()
 
-		if is_a_distribution(d2):
-			a2,b2 = d2.support()
-		else:
-			a2,b2 = -np.inf,np.inf
+		a2,b2 = d2.support()
 		
 		self.a , self.b = intersect_intervals([(a1,b1),(a2,b2)])
 
@@ -134,11 +126,74 @@ class Posterior_scipyrv(stats.rv_continuous):
 		self.cdf_lookup[float(x)] = ret
 		return ret
 
+	def ppf_with_bounds(self, q, leftbound, rightbound):
+		'''
+		wraps scipy ppf function
+		https://github.com/scipy/scipy/blob/4c0fd79391e3b2ec2738bf85bb5dab366dcd12e4/scipy/stats/_distn_infrastructure.py#L1681-L1699
+		'''
+
+		factor = 10.
+		left, right = self._get_support()
+
+		if leftbound is not None:
+			left = leftbound
+		if rightbound is not None:
+			right = rightbound
+
+		if np.isinf(left):
+			left = min(-factor, right)
+			while self._ppf_to_solve(left, q) > 0.:
+				left, right = left * factor, left
+		# left is now such that cdf(left) <= q
+		# if right has changed, then cdf(right) > q
+
+		if np.isinf(right):
+			right = max(factor, left)
+			while self._ppf_to_solve(right, q) < 0.:
+				left, right = right, right * factor
+		# right is now such that cdf(right) >= q
+
+		return optimize.brentq(self._ppf_to_solve,
+							   left, right, args=q, xtol=self.xtol)
 
 
+	def compute_percentiles_exact(self, percentiles_list):
+		start = time.time()
+		result = {}
+		print('Running compute_percentiles_exact. Support: ', self.support(), file=sys.stderr)
+		percentiles_list.sort()
+		percentiles_reordered = sum(zip(percentiles_list,reversed(percentiles_list)), ())[:len(percentiles_list)] #https://stackoverflow.com/a/17436999/8010877
 
+		def get_bounds(dict, p):
+			keys = list(dict.keys())
+			keys.append(p)
+			keys.sort()
+			i = keys.index(p)
+			if i != 0:
+				leftbound = dict[keys[i - 1]]
+			else:
+				leftbound = None
+			if i != len(keys) - 1:
+				rightbound = dict[keys[i + 1]]
+			else:
+				rightbound = None
+			return leftbound, rightbound
 
+		for p in percentiles_reordered:
+			print("trying to compute the", p, "th percentile")
+			try:
+				leftbound , rightbound = get_bounds(result,p)
+				res = self.ppf_with_bounds(p,leftbound,rightbound)
+				result[p] = np.around(res,2)
+			except RuntimeError as e:
+				result[p] = e
 
+		sorted_result = {key:value for key,value in sorted(result.items())}
+
+		end = time.time()
+
+		description_string = 'Computed in ' + str(np.around(end - start, 1)) + ' seconds'
+		return {'result': sorted_result, 'runtime': description_string}
 
 def parse_user_inputs(dict):
 	dict = dict.to_dict()
@@ -214,7 +269,6 @@ def plot_pdfs(dict_of_dists,x_from,x_to):
 	ax.set_ylabel("Probability density")
 	return fig
 
-
 def plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=-50,x_to=50):
 	prior_string = "P(X)"
 	likelihood_string = "P(E|X)"
@@ -227,19 +281,6 @@ def plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=-50,x_to=50):
 	return plot
 
 
-def compute_percentiles_exact(distr,percentiles_list):
-	start = time.time()
-	result = {}
-	print('Running compute_percentiles_exact. Support: ',distr.support(),file=sys.stderr)
-	for p in percentiles_list:
-		print("trying to compute the",p,"th percentile")
-		try:
-			result[p] = np.around(distr.ppf(p),2)
-		except RuntimeError as e:
-			result[p] = e
-	end = time.time()
-	description_string = 'Computed in '+str(np.around(end-start,1))+' seconds'
-	return {'result':result,'runtime':description_string}
 
 def intelligently_set_graph_domain(prior,likelihood):
 
@@ -293,7 +334,6 @@ def graph_out(dict):
 	
 	return plot+ev_string
 
-
 def percentiles_out_exact(dict):
 	# Parse inputs
 	user_inputs = parse_user_inputs(dict)
@@ -306,13 +346,9 @@ def percentiles_out_exact(dict):
 
 	#percentiles
 	percentiles_exact_string = ''
-	print("running percentiles exact", file=sys.stderr)
-	percentiles_exact = compute_percentiles_exact(posterior,[0.1,0.25,0.5,0.75,0.9])
-	percentiles_exact_result = percentiles_exact['result']
-	percentiles_exact_runtime = percentiles_exact['runtime']
+	percentiles_exact = posterior.compute_percentiles_exact([0.1,0.25,0.5,0.75,0.9])
 
-	percentiles_exact_string = percentiles_exact_runtime +'<br>'
-	for x in percentiles_exact_result:
-		percentiles_exact_string += str(x) + ', ' + str(percentiles_exact_result[x]) + '<br>'
+	percentiles_exact_string = percentiles_exact['runtime'] +'<br>'
+	for x in percentiles_exact['result']:
+		percentiles_exact_string += str(x) + ', ' + str(percentiles_exact['result'][x]) + '<br>'
 	return percentiles_exact_string
-
