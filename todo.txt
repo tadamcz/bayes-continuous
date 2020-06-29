@@ -4,8 +4,6 @@
     * may have to wrap scipy's ppf() to get access to brentq
 * refactor
 	* https://pypi.org/project/pep8/
-    * put normalization inside product pdf class
-    * every time cdf is called, store the value in a dict, so that once we found a point where the cdf is ~1, the cdf method can just return 1 without doing integration
 * new ways to inputs distributions
 	* kernel density estimation
 	* fit distribution to quartiles/deciles
