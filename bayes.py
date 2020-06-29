@@ -40,6 +40,44 @@ def extremeties_intervals(two_tuples):
 
 	return extreme_left,extreme_right
 
+def split_integral(f,splitpoint,integrate_to,support=(-np.inf,np.inf)):
+	'''
+	https://stackoverflow.com/questions/47193045/why-does-integrate-quadlambda-x-xexp-x2-2-sqrt2pi-0-0-100000-give-0
+	https://stackoverflow.com/questions/34877147/limits-of-quad-integration-in-scipy-with-np-inf
+
+	if you try
+
+	for x in range(100):
+		print('cdf(',x,') = ',distr.cdf(x))
+
+	CDF goes to 1 and then becomes
+	a tiny value or 0. Due to problem of integrating over an area that
+	is mostly 0. See stackoverflow links above.
+
+	This creates problems when trying to use numerical equation solvers
+	on the CDF. e.g. a bisection algo will first try CDF(very_large_number)
+	and this will return 0.
+
+	you can point quad to the region of the function
+	where the peak(s) is/are with by supplying the points argument
+	(points where 'where local difficulties of the integrand may occur'
+	according to the documentation)
+
+	But you can't pass points when one of the integration bounds
+	is infinite.
+
+	My solution: do the integration in two parts.
+	First the left, then the right.
+	Won't work for every function, but should cover many cases.
+	'''
+	a,b = support[0],support[1]
+	if integrate_to < splitpoint:
+		# just return the integral normally
+		return integrate.quad(f,a,integrate_to)[0]
+	else:
+		integral_left = integrate.quad(f, a, splitpoint)[0]
+		integral_right = integrate.quad(f, splitpoint, integrate_to)[0]
+		return integral_left + integral_right
 
 class Posterior_scipyrv(stats.rv_continuous):
 	def __init__(self,d1,d2):
@@ -75,7 +113,8 @@ class Posterior_scipyrv(stats.rv_continuous):
 		self.mode = initial_guess_for_mode # could be improved
 
 		'''find normalization constant in init, so don't have to run integration every time'''
-		self.normalization_constant = integrate.quad(self.unnormalized_pdf, self.a, self.b)[0]
+		self.normalization_constant = split_integral(f=self.unnormalized_pdf,splitpoint=self.mode,integrate_to=self.b,
+													 support=self.support())
 
 	def unnormalized_pdf(self,x):
 		return self.d1.pdf(x) * self.d2.pdf(x)
@@ -87,47 +126,8 @@ class Posterior_scipyrv(stats.rv_continuous):
 		return -self.pdf(x)
 
 	def _cdf(self,x):
-		'''
+		return split_integral(f=self.pdf,splitpoint=self.mode,integrate_to=x,support=self.support())
 
-		https://stackoverflow.com/questions/47193045/why-does-integrate-quadlambda-x-xexp-x2-2-sqrt2pi-0-0-100000-give-0
-		https://stackoverflow.com/questions/34877147/limits-of-quad-integration-in-scipy-with-np-inf
-		
-		if you try
-
-		for x in range(100):
-			print('cdf(',x,') = ',distr.cdf(x))
-
-		CDF goes to 1 and then becomes
-		a tiny value or 0. Due to problem of integrating over an area that
-		is mostly 0. See stackoverflow links above.
-
-		This creates problems when trying to use numerical equation solvers
-		on the CDF. e.g. a bisection algo will first try CDF(very_large_number)
-		and this will return 0.
-		
-		you can point quad to the region of the function
-		where the peak(s) is/are with by supplying the points argument 
-		(points where 'where local difficulties of the integrand may occur'
-		according to the documentation)
-		
-		But you can't pass points when one of the integration bounds
-		is infinite. 
-		
-		My solution: do the integration in two parts.
-		First the left, then the right.
-		Won't work for every function, but should cover many cases.
-		'''
-
-		mode = self.mode
-		a,b = self.support()
-
-		if x<mode:
-			# just return the cdf using normal method
-			return super(Posterior_scipyrv, self)._cdf(x)
-		else:
-			integral_left = integrate.quad(self.pdf,a,mode)[0]
-			integral_right = integrate.quad(self.pdf,mode,x)[0]
-			return integral_left + integral_right
 
 
 
@@ -373,11 +373,10 @@ def percentiles_out_exact(dict):
 	return percentiles_exact_string
 
 prior = stats.norm(1,1)
-likelihood = stats.norm(10,1)
+likelihood = stats.norm(20,1)
 posterior = Posterior_scipyrv(prior,likelihood)
 for i in range(50):
 	print(i,posterior.cdf(i))
-print(integrate.quad(posterior,-np.inf,np.inf))
 s = time.time()
 intelligently_set_graph_domain(prior,likelihood)
 e = time.time()
