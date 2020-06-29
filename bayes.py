@@ -89,6 +89,7 @@ class Posterior_scipyrv(stats.rv_continuous):
 		self.d1= d1
 		self.d2= d2
 
+		self.cdf_lookup = {}
 		'''
 		defining the support of the product pdf is important
 		because, when we use a numerical equation solver on the CDF,
@@ -126,7 +127,12 @@ class Posterior_scipyrv(stats.rv_continuous):
 		return -self.pdf(x)
 
 	def _cdf(self,x):
-		return split_integral(f=self.pdf,splitpoint=self.mode,integrate_to=x,support=self.support())
+		for x_lookup in self.cdf_lookup:
+			if x_lookup < x and np.around(self.cdf_lookup[x_lookup],5)==1.0:
+				return 1
+		ret = split_integral(f=self.pdf,splitpoint=self.mode,integrate_to=x,support=self.support())
+		self.cdf_lookup[float(x)] = ret
+		return ret
 
 
 
@@ -372,16 +378,15 @@ def percentiles_out_exact(dict):
 		percentiles_exact_string += str(x) + ', ' + str(percentiles_exact_result[x]) + '<br>'
 	return percentiles_exact_string
 
-prior = stats.norm(1,1)
-likelihood = stats.norm(20,1)
+prior = stats.lognorm(1,1)
+likelihood = stats.norm(20,50)
 posterior = Posterior_scipyrv(prior,likelihood)
-for i in range(50):
-	print(i,posterior.cdf(i))
-s = time.time()
-intelligently_set_graph_domain(prior,likelihood)
-e = time.time()
-print(e-s,'secs new',file=sys.stderr)
 
+s = time.time()
+for i in range(100):
+	print(1-i/100,posterior.ppf(1-i/100))
+e = time.time()
+print(e-s,'secs')
 
 # if __name__ == "__main__":
 # 	model = pm.Model()
