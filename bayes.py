@@ -41,9 +41,9 @@ def extremeties_intervals(two_tuples):
 	return extreme_left,extreme_right
 
 
-class Product_pdf(stats.rv_continuous):
+class Posterior_scipyrv(stats.rv_continuous):
 	def __init__(self,d1,d2):
-		super(Product_pdf,self).__init__()
+		super(Posterior_scipyrv, self).__init__()
 		if not is_a_distribution(d1):
 			raise TypeError("First argument must be a distribution")
 		if type(d2) is not float and type(d2) is not int and not is_a_distribution(d2):
@@ -71,17 +71,17 @@ class Product_pdf(stats.rv_continuous):
 		it's important that we don't run optimize.fmin every time cdf 
 		is called, so I run it during init.
 		'''
-		initial_guess_for_mode = self.d1.expect()
+		initial_guess_for_mode = (self.d1.expect()+self.d2.expect())/2
 		self.mode = initial_guess_for_mode # could be improved
 
+		'''find normalization constant in init, so don't have to run integration every time'''
+		self.normalization_constant = integrate.quad(self.unnormalized_pdf, self.a, self.b)[0]
 
+	def unnormalized_pdf(self,x):
+		return self.d1.pdf(x) * self.d2.pdf(x)
 
 	def _pdf(self,x):
-		if type(self.d2) is float:
-			ret = self.d1.pdf(x)*self.d2
-		if type(self.d2) is stats._distn_infrastructure.rv_frozen:
-			ret = self.d1.pdf(x)*self.d2.pdf(x)
-		return ret
+		return self.unnormalized_pdf(x)/self.normalization_constant
 
 	def neg_pdf(self,x):
 		return -self.pdf(x)
@@ -123,22 +123,16 @@ class Product_pdf(stats.rv_continuous):
 
 		if x<mode:
 			# just return the cdf using normal method
-			return super(Product_pdf,self)._cdf(x)
+			return super(Posterior_scipyrv, self)._cdf(x)
 		else:
 			integral_left = integrate.quad(self.pdf,a,mode)[0]
 			integral_right = integrate.quad(self.pdf,mode,x)[0]
 			return integral_left + integral_right
 
 
-def normalize(distr):
-	integral = integrate.quad(distr.pdf,-np.inf,np.inf)[0]
-	ret = Product_pdf(distr,1/integral)
-	return ret
 
-def update(prior,likelihood):
-	unnormalized_posterior = Product_pdf(prior,likelihood)
-	posterior = normalize(unnormalized_posterior)
-	return posterior
+
+
 
 def parse_user_inputs(dict):
 	dict = dict.to_dict()
@@ -312,7 +306,7 @@ def graph_out(dict):
 	
 	# compute posterior pdf
 	s = time.time()
-	posterior = update(prior,likelihood)
+	posterior = Posterior_scipyrv(prior,likelihood)
 	e = time.time()
 	print(e-s,'seconds to get posterior pdf',file=sys.stderr)
 
@@ -364,7 +358,7 @@ def percentiles_out_exact(dict):
 	likelihood = user_inputs['likelihood']	
 	
 	# compute posterior pdf
-	posterior = update(prior,likelihood)
+	posterior = Posterior_scipyrv(prior,likelihood)
 
 	#percentiles
 	percentiles_exact_string = ''
@@ -380,7 +374,10 @@ def percentiles_out_exact(dict):
 
 prior = stats.norm(1,1)
 likelihood = stats.norm(10,1)
-posterior = update(prior,likelihood)
+posterior = Posterior_scipyrv(prior,likelihood)
+for i in range(50):
+	print(i,posterior.cdf(i))
+print(integrate.quad(posterior,-np.inf,np.inf))
 s = time.time()
 intelligently_set_graph_domain(prior,likelihood)
 e = time.time()
