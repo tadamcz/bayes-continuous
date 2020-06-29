@@ -2,7 +2,7 @@
 
 <form method="POST">
 <div><b> Prior </b></div>
-{{ form.prior.select_distribution_family.label }} {{ form.prior.select_distribution_family(onchange="display_fields_prior()") }}
+{{ form.prior.family.label }} {{ form.prior.family(onchange="display_fields_prior()") }}
 
 <div id = "prior-normal-field"> {{ form.prior.normal.label }} {{ form.prior.normal }} </div>
 
@@ -15,7 +15,7 @@
 
 <br><div><b> Likelihood </b></div>
 
-{{ form.likelihood.select_distribution_family.label }} {{ form.likelihood.select_distribution_family(onchange="display_fields_likelihood()") }}
+{{ form.likelihood.family.label }} {{ form.likelihood.family(onchange="display_fields_likelihood()") }}
 
 <div id = "likelihood-normal-field"> {{ form.likelihood.normal.label }} {{ form.likelihood.normal }} </div>
 
@@ -25,8 +25,8 @@
 
 <div id = "likelihood-uniform-field"> {{ form.likelihood.uniform.label }} {{ form.likelihood.uniform }} </div>
 
-<br>{{form.graph_range.label}}
-{{form.graph_range}}
+<br>{{form.graphrange.label}}
+{{form.graphrange}}
 
 <br>
 	<input type="submit"> 
@@ -48,6 +48,11 @@
 <div id="percentiles_mcmc_result"></div> -->
 
 {% endif %}
+
+{% if link_to_this %}
+<div> Link to this page: <a href="{{ link_to_this }}"> {{ link_to_this }} </a>  </div>
+{% endif %}
+
 
 <br>
 Define the prior and likelihood distributions above. More distribution types could be added if there is sufficient
@@ -114,7 +119,7 @@ document.getElementById("percentiles_exact_message").innerHTML = "Percentiles of
 
 
 function display_fields_prior() {
-  var x = document.getElementById("prior-select_distribution_family").value;
+  var x = document.getElementById("prior-family").value;
   
   // first hide all fields
   document.getElementById("prior-normal-field").style.display = "none" ;
@@ -143,7 +148,7 @@ function display_fields_prior() {
 }
 
 function display_fields_likelihood() {
-  var x = document.getElementById("likelihood-select_distribution_family").value;
+  var x = document.getElementById("likelihood-family").value;
   
   // first hide all fields
   document.getElementById("likelihood-normal-field").style.display = "none" ;
