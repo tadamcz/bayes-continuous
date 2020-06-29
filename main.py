@@ -94,7 +94,7 @@ def hello():
 	thread_id_exact = str(random.randint(0, 10000))
 	executor.submit_stored(thread_id_exact, bayes.percentiles_out_exact, my_input)
 
-	link_to_this = 'https:bayes-continuous.herokuapp.com/?'
+	link_to_this = '/?'
 	for x in my_input:
 		if 'csrf' not in x and my_input[x] !='':
 			link_to_this += str(x) + '=' + str(my_input[x]) + '&'
