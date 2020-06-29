@@ -8,7 +8,6 @@ import sys
 import time
 
 import mpld3
-import emcee
 
 def is_a_distribution(obj):
 	if issubclass(type(obj),stats.rv_continuous):
@@ -29,6 +28,18 @@ def intersect_intervals(two_tuples):
 	intersect_left,intersect_right = max(d1_left,d2_left),min(d1_right,d2_right)
 
 	return intersect_left,intersect_right
+
+def extremeties_intervals(two_tuples):
+	d1,d2 = two_tuples
+
+	d1_left, d1_right = d1[0], d1[1]
+	d2_left, d2_right = d2[0], d2[1]
+
+	extreme_left = min(d1_left,d1_right,d2_left,d2_right)
+	extreme_right = max(d1_left,d1_right,d2_left,d2_right)
+
+	return extreme_left,extreme_right
+
 
 class Product_pdf(stats.rv_continuous):
 	def __init__(self,d1,d2):
@@ -61,7 +72,8 @@ class Product_pdf(stats.rv_continuous):
 		is called, so I run it during init.
 		'''
 		initial_guess_for_mode = self.d1.expect()
-		self.mode = optimize.fmin(self.neg_pdf,initial_guess_for_mode)
+		self.mode = initial_guess_for_mode # could be improved
+
 
 
 	def _pdf(self,x):
@@ -270,42 +282,25 @@ def compute_percentiles_exact(distr,percentiles_list):
 	description_string = 'Computed in '+str(np.around(end-start,1))+' seconds'
 	return {'result':result,'runtime':description_string}
 
-def intelligently_set_graph_domain(distr):
-	left_default,right_default = -50,50
+def intelligently_set_graph_domain(prior,likelihood):
 
+	prior_mean,prior_sd = prior.mean(),prior.std()
+	p = 0.1
+	prior_range = prior.ppf(p) , prior.ppf(1-p)
+	likelihood_range = likelihood.ppf(p) , likelihood.ppf(1-p)
 
-	d_left,d_right = distr.support()
+	ranges = extremeties_intervals([prior_range,likelihood_range])
 
-	left_default,right_default = intersect_intervals([(left_default,right_default),(d_left,d_right)])
+	supports = intersect_intervals([prior.support(),likelihood.support()])
 
-	mean = distr.expect()
-	
-	y_val = 0.01
-	max_domain = 1e6
+	domain = intersect_intervals([supports,ranges])
 
-	def f(x):
-		return distr.pdf(x)-y_val
-	
+	buffer = 0.1
+	buffer = abs(buffer*(domain[1]-domain[0]))
 
-	try:
-		s = time.time()
-		left_root = optimize.root_scalar(f,rtol=.3,bracket=(-max_domain,mean))
-		right_root = optimize.root_scalar(f,rtol=.3,bracket=(mean,max_domain))
-		e = time.time()
-		print(e-s,'seconds to find roots', file=sys.stderr)
-		print(left_root,file=sys.stderr)
-		print(right_root,file=sys.stderr)
-	except ValueError:
-		print("intelligently_set_graph_domain failed, using defaults", file=sys.stderr)
-		return left_default,right_default
+	domain = domain[0]-buffer,domain[1]+buffer
 
-	if left_root.converged and right_root.converged:
-		left_root, right_root= left_root.root, right_root.root
-		width = right_root-left_root
-		buffer = 0.2*width
-		left_root, right_root = left_root-buffer, right_root + buffer
-		return left_root,right_root
-
+	return domain
 
 plt.rcParams.update({'font.size': 16})
 def graph_out(dict):
@@ -325,7 +320,7 @@ def graph_out(dict):
 	if override_graph_range:
 		x_from,x_to = override_graph_range
 	else:
-		x_from , x_to = intelligently_set_graph_domain(posterior)
+		x_from , x_to = intelligently_set_graph_domain(prior,likelihood)
 
 	s = time.time()
 	plot = plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=x_from,x_to=x_to)
@@ -383,11 +378,14 @@ def percentiles_out_exact(dict):
 		percentiles_exact_string += str(x) + ', ' + str(percentiles_exact_result[x]) + '<br>'
 	return percentiles_exact_string
 
-prior = stats.lognorm(scale=5,s=8)
-likelihood = stats.norm(loc=10,scale=3)
+prior = stats.norm(1,1)
+likelihood = stats.norm(10,1)
 posterior = update(prior,likelihood)
-intelligently_set_graph_domain(posterior)
-print(posterior.support())
+s = time.time()
+intelligently_set_graph_domain(prior,likelihood)
+e = time.time()
+print(e-s,'secs new',file=sys.stderr)
+
 
 # if __name__ == "__main__":
 # 	model = pm.Model()

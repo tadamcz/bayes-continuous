@@ -1,9 +1,3 @@
-* faster way to intelligently_set_graph_domain
-    * get the mean and sd of prior and likelihood: should be fast because closed form expression
-    * get mean +/- 3sd for prior and likelihood. Take the union of these intervals
-    * take the union of prior and likelihood supports
-    * take the intersection of supports and mean+sd intervals
-    * add some buffer
 * more efficiently calculate percentiles
     * get extreme percentiles e.g. 10th and 90th.
     * then the next percentiles are known to be in between. will make eqn solver faster.
