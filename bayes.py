@@ -196,11 +196,12 @@ class Posterior_scipyrv(stats.rv_continuous):
 		return {'result': sorted_result, 'runtime': description_string}
 
 def parse_user_inputs(dict):
-	dict = dict.to_dict()
 
 	# debugging print('Received dict',dict, file=sys.stderr)
 
 	for key in dict.keys():
+		dict[key] = str(dict[key])
+
 		cond1 = 'likelihood' in key
 		cond2 = 'prior' in key
 		cond3 = 'graph_range' in key
@@ -218,38 +219,38 @@ def parse_user_inputs(dict):
 			dict[key] = float(dict[key])
 		
 	
-	if dict["prior-select_distribution_family"] == "normal":
+	if dict["prior-family"] == "normal":
 		prior = stats.norm(loc = dict['prior-normal-param1'], scale =dict['prior-normal-param2'])
 
-	elif dict["prior-select_distribution_family"] == "lognormal":
+	elif dict["prior-family"] == "lognormal":
 		prior = stats.lognorm(scale = math.exp(dict['prior-lognormal-param1']), s =dict['prior-lognormal-param2'])
 
-	elif dict["prior-select_distribution_family"] == "beta":
+	elif dict["prior-family"] == "beta":
 		prior = stats.beta(dict["prior-beta-param1"],dict["prior-beta-param2"])
 
-	elif dict["prior-select_distribution_family"] == "uniform":
+	elif dict["prior-family"] == "uniform":
 		loc = dict["prior-uniform-param1"]
 		scale = dict["prior-uniform-param2"] - loc
 		prior = stats.uniform(loc,scale)
 
 	'''Redundant, will refactor'''
-	if dict["likelihood-select_distribution_family"] == "normal":
+	if dict["likelihood-family"] == "normal":
 		likelihood = stats.norm(loc = dict['likelihood-normal-param1'], scale =dict['likelihood-normal-param2'])
 
-	elif dict["likelihood-select_distribution_family"] == "lognormal":
+	elif dict["likelihood-family"] == "lognormal":
 		likelihood = stats.lognorm(scale = math.exp(dict['likelihood-lognormal-param1']), s =dict['likelihood-lognormal-param2'])
 
-	elif dict["likelihood-select_distribution_family"] == "beta":
+	elif dict["likelihood-family"] == "beta":
 		likelihood = stats.beta(dict["likelihood-beta-param1"],dict["likelihood-beta-param2"])
 
-	elif dict["likelihood-select_distribution_family"] == "uniform":
+	elif dict["likelihood-family"] == "uniform":
 		loc = dict["likelihood-uniform-param1"]
 		scale = dict["likelihood-uniform-param2"] - loc
 		likelihood = stats.uniform(loc,scale)
 
 	override_graph_range = False
-	if dict['graph_range-param1'] !='' and dict['graph_range-param2'] !='':
-		override_graph_range = (dict['graph_range-param1'],dict['graph_range-param2'])
+	if dict['graphrange-param1'] !='' and dict['graphrange-param2'] !='':
+		override_graph_range = (dict['graphrange-param1'],dict['graphrange-param2'])
 	
 	return {'prior':prior, 'likelihood':likelihood, 'override_graph_range':override_graph_range}
 
