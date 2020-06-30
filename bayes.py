@@ -228,8 +228,20 @@ def parse_user_inputs(dictionary):
 	override_graph_range = False
 	if dictionary['graphrange']['param1'] is not None and dictionary['graphrange']['param2'] is not None:
 		override_graph_range = (dictionary['graphrange']['param1'], dictionary['graphrange']['param2'])
-	
-	return {'prior':prior, 'likelihood':likelihood, 'override_graph_range':override_graph_range}
+
+	custom_percentiles = False
+	dictionary['custompercentiles'] = dictionary['custompercentiles'].replace(' ','')
+	if dictionary['custompercentiles'] != '':
+		custom_percentiles = dictionary['custompercentiles']
+		custom_percentiles = custom_percentiles.split(',')
+		custom_percentiles = [float(p) for p in custom_percentiles]
+		custom_percentiles = [p for p in custom_percentiles if 0<p<1]
+
+	return {'prior':prior,
+			'likelihood':likelihood,
+			'override_graph_range':override_graph_range,
+			'custom_percentiles':custom_percentiles
+			}
 
 def plot_pdfs(dict_of_dists,x_from,x_to):
 	if x_from:
@@ -325,7 +337,12 @@ def percentiles_out_exact(dict):
 
 	#percentiles
 	percentiles_exact_string = ''
-	percentiles_exact = posterior.compute_percentiles_exact([0.1,0.25,0.5,0.75,0.9])
+
+	if user_inputs['custom_percentiles']:
+		p = user_inputs['custom_percentiles']
+	else:
+		p = [0.1,0.25,0.5,0.75,0.9]
+	percentiles_exact = posterior.compute_percentiles_exact(p)
 
 	percentiles_exact_string = percentiles_exact['runtime'] +'<br>'
 	for x in percentiles_exact['result']:

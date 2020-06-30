@@ -4,7 +4,4 @@
 	* kernel density estimation
 	* fit distribution to quartiles/deciles
 	* additional distribution types
-* advanced settings
-    * move graph domain override into advanced
-    * allow setting custom percentiles
 * form validation
