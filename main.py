@@ -33,6 +33,7 @@ class DistrForm2(FlaskForm):
 	prior = FormField(DistrForm)
 	likelihood = FormField(DistrForm)
 	graphrange = FormField(TwoParamsForm,"Override default settings for graph domain? (optional)")
+	custompercentiles = StringField("Provide custom percentiles? (optional, comma-separated)")
 
 def label_form(form):
 	for obj in [form.prior,form.likelihood]:
