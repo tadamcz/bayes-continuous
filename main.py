@@ -48,6 +48,7 @@ def label_form(form):
 
 	form.graphrange.param1.label = "From"
 	form.graphrange.param2.label = "To"
+	return form
 
 def recursively_remove_csrf(dictionary):
 	dictionary.pop('csrf_token')
@@ -63,7 +64,7 @@ def link_to_this_string(dictionary,remove_csrf=False):
 
 @app.route('/')
 def view_without_form_input():
-	form = DistrForm2()
+	form = label_form(DistrForm2())
 	if len(request.args)>0:
 		url_input = request.args['data']
 		url_input = eval(url_input)
@@ -71,11 +72,9 @@ def view_without_form_input():
 		url_input = None
 
 
-	label_form(form)
-
 	# If URL parameters are provided (a more sophisticated version would check that the input is valid)
 	if url_input:
-		form = DistrForm2(data=url_input)
+		form = label_form(DistrForm2(data=url_input))
 		link_to_this = link_to_this_string(url_input)
 
 		graph = bayes.graph_out(url_input)
