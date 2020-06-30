@@ -256,6 +256,7 @@ def parse_user_inputs(dict):
 
 def plot_pdfs(dict_of_dists,x_from,x_to):
 	if x_from:
+		x_from ,x_to = float(x_from),float(x_to)
 		x = np.linspace(x_from,x_to,100)
 	else:
 		x = np.linspace(-50,50,100)
