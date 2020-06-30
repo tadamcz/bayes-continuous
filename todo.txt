@@ -8,4 +8,3 @@
     * move graph domain override into advanced
     * allow setting custom percentiles
 * form validation
-* pass parameters in URL

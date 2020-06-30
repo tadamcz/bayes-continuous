@@ -6,6 +6,7 @@ from scipy import integrate
 from scipy import optimize
 import sys
 import time
+import decimal
 
 import mpld3
 
@@ -195,62 +196,38 @@ class Posterior_scipyrv(stats.rv_continuous):
 		description_string = 'Computed in ' + str(np.around(end - start, 1)) + ' seconds'
 		return {'result': sorted_result, 'runtime': description_string}
 
-def parse_user_inputs(dict):
+def parse_user_inputs(dictionary):
+	def recursively_convert_Decimal_to_float(dictionary):
+		for key in dictionary:
+			if type(dictionary[key]) is decimal.Decimal:
+				dictionary[key] = float(dictionary[key])
+			if type(dictionary[key]) is dict:
+				recursively_convert_Decimal_to_float(dictionary[key])
 
-	# debugging print('Received dict',dict, file=sys.stderr)
+	recursively_convert_Decimal_to_float(dictionary)
 
-	for key in dict.keys():
-		dict[key] = str(dict[key])
+	for p_or_l in ['prior','likelihood']:
+		if dictionary[p_or_l]['family'] == 'normal':
+			distr = stats.norm(loc=dictionary[p_or_l]['normal']['param1'], scale=dictionary[p_or_l]['normal']['param1'])
+		if dictionary[p_or_l]['family'] == 'lognormal':
+			distr = stats.lognorm(scale=math.exp(dictionary[p_or_l]['lognormal']['param1']), s=dictionary[p_or_l]['lognormal'][
+				'param2'])
+		if dictionary[p_or_l]['family'] == 'beta':
+			distr = stats.beta(dictionary[p_or_l]['beta']['param1'], dictionary[p_or_l]['beta']['param2'])
+		if dictionary[p_or_l]['family'] == 'uniform':
+			loc = dictionary[p_or_l]['uniform']['param1']
+			scale = dictionary[p_or_l]['uniform']['param2'] - loc
+			distr = stats.uniform(loc, scale)
 
-		cond1 = 'likelihood' in key
-		cond2 = 'prior' in key
-		cond3 = 'graph_range' in key
-		yes = cond1 or cond2 or cond3
+		if p_or_l == 'prior':
+			prior = distr
+		if p_or_l == 'likelihood':
+			likelihood = distr
 
-		cond1 = 'percentiles' in key
-		cond2 = 'family' in key
-		cond3 = 'csrf' in key
-		cond4 = len(dict[key])==0
-
-		no = cond1 or cond2 or cond3 or cond4
-
-		if yes and not no:
-			# debugging print(key, file=sys.stderr)
-			dict[key] = float(dict[key])
-		
-	
-	if dict["prior-family"] == "normal":
-		prior = stats.norm(loc = dict['prior-normal-param1'], scale =dict['prior-normal-param2'])
-
-	elif dict["prior-family"] == "lognormal":
-		prior = stats.lognorm(scale = math.exp(dict['prior-lognormal-param1']), s =dict['prior-lognormal-param2'])
-
-	elif dict["prior-family"] == "beta":
-		prior = stats.beta(dict["prior-beta-param1"],dict["prior-beta-param2"])
-
-	elif dict["prior-family"] == "uniform":
-		loc = dict["prior-uniform-param1"]
-		scale = dict["prior-uniform-param2"] - loc
-		prior = stats.uniform(loc,scale)
-
-	'''Redundant, will refactor'''
-	if dict["likelihood-family"] == "normal":
-		likelihood = stats.norm(loc = dict['likelihood-normal-param1'], scale =dict['likelihood-normal-param2'])
-
-	elif dict["likelihood-family"] == "lognormal":
-		likelihood = stats.lognorm(scale = math.exp(dict['likelihood-lognormal-param1']), s =dict['likelihood-lognormal-param2'])
-
-	elif dict["likelihood-family"] == "beta":
-		likelihood = stats.beta(dict["likelihood-beta-param1"],dict["likelihood-beta-param2"])
-
-	elif dict["likelihood-family"] == "uniform":
-		loc = dict["likelihood-uniform-param1"]
-		scale = dict["likelihood-uniform-param2"] - loc
-		likelihood = stats.uniform(loc,scale)
 
 	override_graph_range = False
-	if dict['graphrange-param1'] !='' and dict['graphrange-param2'] !='':
-		override_graph_range = (dict['graphrange-param1'],dict['graphrange-param2'])
+	if dictionary['graphrange']['param1'] is not None and dictionary['graphrange']['param2'] is not None:
+		override_graph_range = (dictionary['graphrange']['param1'], dictionary['graphrange']['param2'])
 	
 	return {'prior':prior, 'likelihood':likelihood, 'override_graph_range':override_graph_range}
 

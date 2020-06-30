@@ -11,16 +11,11 @@ from flask_executor import Executor
 import random
 from sys import stderr
 
+from decimal import Decimal
+
 app = Flask(__name__)
 app.secret_key = '85471922274287851509 97062761986949020795 57366896783488140597 40749154936961460411 00411694272886184644 96318878629748624589 43282652160909407164 81507837348880085650 94716104893291003189 95680230903613490699'
 executor = Executor(app)
-
-parameter_names = ['likelihood-family', 'prior-family',
-				   'prior-normal-param1', 'prior-normal-param2' , 'prior-lognormal-param1', 'prior-lognormal-param2',
-				   'prior-beta-param1', 'prior-beta-param2', 'prior-uniform-param1', 'prior-uniform-param2',
-				   'likelihood-normal-param1', 'likelihood-normal-param2', 'likelihood-lognormal-param1',
-				   'likelihood-lognormal-param2', 'likelihood-beta-param1', 'likelihood-beta-param2',
-				   'likelihood-uniform-param1', 'likelihood-uniform-param2','graphrange-param1','graphrange-param2']
 
 class TwoParamsForm(FlaskForm):
 	param1 = DecimalField()
@@ -38,89 +33,54 @@ class DistrForm2(FlaskForm):
 	prior = FormField(DistrForm)
 	likelihood = FormField(DistrForm)
 	graphrange = FormField(TwoParamsForm,"Override default settings for graph domain? (optional)")
- 
 
 def label_form(form):
-	'''I couldn't figure it out without this silly boilerplate'''
-	form.prior.normal.param1.label = "mean"
-	form.prior.normal.param2.label = "sd"
-	form.prior.lognormal.param1.label = "mu"
-	form.prior.lognormal.param2.label = "sigma"
+	for obj in [form.prior,form.likelihood]:
+		obj.normal.param1.label = "mean"
+		obj.normal.param2.label = "sd"
 
-	form.prior.beta.param1.label = "alpha"
-	form.prior.beta.param2.label = "beta"
+		obj.lognormal.param1.label = "mu"
+		obj.lognormal.param2.label = "sigma"
 
-	'''exactly the same thing but for the likelihood!'''
-	form.likelihood.normal.param1.label = "mean"
-	form.likelihood.normal.param2.label = "sd"
-
-	form.likelihood.lognormal.param1.label = "mu"
-	form.likelihood.lognormal.param2.label = "sigma"
-
-	form.likelihood.beta.param1.label = "alpha"
-	form.likelihood.beta.param2.label = "beta"
+		obj.beta.param1.label = "alpha"
+		obj.beta.param2.label = "beta"
 
 	form.graphrange.param1.label = "From"
 	form.graphrange.param2.label = "To"
 
+def recursively_remove_csrf(dictionary):
+	dictionary.pop('csrf_token')
+	for key in dictionary:
+		if type(dictionary[key]) is dict:
+			recursively_remove_csrf(dictionary[key])
 
+def link_to_this_string(dictionary,remove_csrf=False):
+	if remove_csrf:
+		recursively_remove_csrf(dictionary)
+	return '/?data=' + str(dictionary)
 
-def dict_to_form_items(form,dict):
-	'''this is the worst thing i have ever written'''
-
-	def str_to_float_if_not_empty(str):
-		if str != '':
-			return float(str)
-		else:
-			return None
-	form.prior.family.data = dict['prior-family']
-	form.likelihood.family.data = dict['likelihood-family']
-
-	form.prior.normal.param1.data = str_to_float_if_not_empty(dict['prior-normal-param1'])
-	form.prior.normal.param2.data = str_to_float_if_not_empty(dict['prior-normal-param2'])
-	form.prior.lognormal.param1.data = str_to_float_if_not_empty(dict['prior-lognormal-param1'])
-	form.prior.lognormal.param2.data = str_to_float_if_not_empty(dict['prior-lognormal-param2'])
-
-	form.prior.beta.param1.data = str_to_float_if_not_empty(dict['prior-beta-param1'])
-	form.prior.beta.param2.data = str_to_float_if_not_empty(dict['prior-beta-param2'])
-	form.prior.uniform.param1.data = str_to_float_if_not_empty(dict['prior-uniform-param1'])
-	form.prior.uniform.param2.data = str_to_float_if_not_empty(dict['prior-uniform-param2'])
-
-	form.likelihood.normal.param1.data = str_to_float_if_not_empty(dict['likelihood-normal-param1'])
-	form.likelihood.normal.param2.data = str_to_float_if_not_empty(dict['likelihood-normal-param2'])
-	form.likelihood.lognormal.param1.data = str_to_float_if_not_empty(dict['likelihood-lognormal-param1'])
-
-	form.likelihood.lognormal.param2.data = str_to_float_if_not_empty(dict['likelihood-lognormal-param2'])
-	form.likelihood.beta.param1.data = str_to_float_if_not_empty(dict['likelihood-beta-param1'])
-	form.likelihood.beta.param2.data = str_to_float_if_not_empty(dict['likelihood-beta-param2'])
-
-	form.likelihood.uniform.param1.data = str_to_float_if_not_empty(dict['likelihood-uniform-param1'])
-	form.likelihood.uniform.param2.data = str_to_float_if_not_empty(dict['likelihood-uniform-param2'])
-	form.graphrange.param1.data = str_to_float_if_not_empty(dict['graphrange-param1'])
-	form.graphrange.param2.data = str_to_float_if_not_empty(dict['graphrange-param2'])
 
 @app.route('/')
 def view_without_form_input():
 	form = DistrForm2()
+	if len(request.args)>0:
+		url_input = request.args['data']
+		url_input = eval(url_input)
+	else:
+		url_input = None
+
+
 	label_form(form)
-	my_input = dict(request.args)
 
-	# If URL parameters are provided
-	if len(my_input) >=4:
-	# a more sophisticated version would check that the input is valid, not just that it has the right number of
-	# arguments.
-		link_to_this = '/?'
-		for x in my_input:
-			link_to_this += str(x) + '=' + str(my_input[x]) + '&'
+	# If URL parameters are provided (a more sophisticated version would check that the input is valid)
+	if url_input:
+		form = DistrForm2(data=url_input)
+		link_to_this = link_to_this_string(url_input)
 
-		for x in parameter_names:
-			if x not in my_input.keys():
-				my_input[x] = ''
-		graph = bayes.graph_out(my_input)
+		graph = bayes.graph_out(url_input)
 		thread_id_exact = str(random.randint(0, 10000))
-		executor.submit_stored(thread_id_exact, bayes.percentiles_out_exact, my_input)
+		executor.submit_stored(thread_id_exact, bayes.percentiles_out_exact, url_input)
 
-		dict_to_form_items(form,my_input)
 
 		return render_template('hw.html', form=form, graph=graph, thread_id_exact=thread_id_exact,
 							   check_on_background_task=1,link_to_this=link_to_this)
@@ -132,15 +92,13 @@ def input_and_output_view():
 	form = DistrForm2()
 	label_form(form)
 
-	my_input = dict(request.form)
-	graph = bayes.graph_out(my_input)
+	form_input = form.data
+	graph = bayes.graph_out(form_input)
 	thread_id_exact = str(random.randint(0, 10000))
-	executor.submit_stored(thread_id_exact, bayes.percentiles_out_exact, my_input)
+	executor.submit_stored(thread_id_exact, bayes.percentiles_out_exact, form_input)
 
-	link_to_this = '/?'
-	for x in my_input:
-		if 'csrf' not in x and my_input[x] !='':
-			link_to_this += str(x) + '=' + str(my_input[x]) + '&'
+	link_to_this = link_to_this_string(form_input,remove_csrf=True)
+
 
 	return render_template('hw.html',form=form,graph=graph,thread_id_exact=thread_id_exact,
 						   check_on_background_task=1,link_to_this=link_to_this)
