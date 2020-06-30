@@ -244,13 +244,8 @@ def parse_user_inputs(dictionary):
 			}
 
 def plot_pdfs(dict_of_dists,x_from,x_to):
-	if x_from:
-		x_from ,x_to = float(x_from),float(x_to)
-		x = np.linspace(x_from,x_to,100)
-	else:
-		x = np.linspace(-50,50,100)
-
-
+	x_from ,x_to = float(x_from),float(x_to)
+	x = np.linspace(x_from,x_to,100)
 
 	fig, ax = plt.subplots()
 	for dist in dict_of_dists:
