@@ -208,7 +208,7 @@ def parse_user_inputs(dictionary):
 
 	for p_or_l in ['prior','likelihood']:
 		if dictionary[p_or_l]['family'] == 'normal':
-			distr = stats.norm(loc=dictionary[p_or_l]['normal']['param1'], scale=dictionary[p_or_l]['normal']['param1'])
+			distr = stats.norm(loc=dictionary[p_or_l]['normal']['param1'], scale=dictionary[p_or_l]['normal']['param2'])
 		if dictionary[p_or_l]['family'] == 'lognormal':
 			distr = stats.lognorm(scale=math.exp(dictionary[p_or_l]['lognormal']['param1']), s=dictionary[p_or_l]['lognormal'][
 				'param2'])
