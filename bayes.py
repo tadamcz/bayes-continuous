@@ -10,7 +10,7 @@ import decimal
 
 import mpld3
 
-ppf_tol = 0.01
+ppf_tol = 0.005
 
 def intersect_intervals(two_tuples):
 	d1 , d2 = two_tuples
@@ -110,6 +110,7 @@ class Posterior_scipyrv(stats.rv_continuous):
 		self.normalization_constant = split_integral(f=self.unnormalized_pdf,splitpoint=self.mode,integrate_to=self.b,
 													 support=self.support())
 
+
 	def unnormalized_pdf(self,x):
 		return self.d1.pdf(x) * self.d2.pdf(x)
 
@@ -123,6 +124,19 @@ class Posterior_scipyrv(stats.rv_continuous):
 		for x_lookup in self.cdf_lookup:
 			if x_lookup < x and np.around(self.cdf_lookup[x_lookup],5)==1.0:
 				return 1
+
+		'''check lookup table for largest integral already computed below x. only integrate the remaining bit.
+		same number of integrations, but the integrations are over a much smaller interval
+		similar in spirit to memoization
+		'''
+		sortedkeys = sorted(self.cdf_lookup ,reverse=True)
+		for key in sortedkeys:
+			#find the greatest key less than x
+			if key<x:
+				ret = self.cdf_lookup[key]+integrate.quad(self.pdf,key,x)[0]
+				self.cdf_lookup[float(x)] = ret
+				return ret
+
 		ret = split_integral(f=self.pdf,splitpoint=self.mode,integrate_to=x,support=self.support())
 		self.cdf_lookup[float(x)] = ret
 		return ret
@@ -135,11 +149,6 @@ class Posterior_scipyrv(stats.rv_continuous):
 
 		factor = 10.
 		left, right = self._get_support()
-
-		if leftbound is not None:
-			left = leftbound
-		if rightbound is not None:
-			right = rightbound
 
 		if np.isinf(left):
 			left = min(-factor, right)
@@ -324,7 +333,7 @@ def graph_out(dict):
 	# Expected value
 	ev = np.around(posterior.expect(),2)
 	ev_string = 'Posterior expected value: '+str(ev)+'<br>'
-	
+
 	return plot+ev_string
 
 def percentiles_out_exact(dict):
