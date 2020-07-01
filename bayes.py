@@ -154,8 +154,15 @@ class Posterior_scipyrv(stats.rv_continuous):
 				left, right = right, right * factor
 		# right is now such that cdf(right) >= q
 
-		return optimize.brentq(self._ppf_to_solve,
-							   left, right, args=q, xtol=self.xtol)
+
+		if leftbound is not None:
+			left = leftbound
+		if rightbound is not None:
+			right = rightbound
+
+		root, rootinfo = optimize.brentq(self._ppf_to_solve,
+							   left, right, args=q, xtol=self.xtol,full_output=True)
+		return root
 
 
 	def compute_percentiles_exact(self, percentiles_list):
