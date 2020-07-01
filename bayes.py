@@ -169,9 +169,7 @@ class Posterior_scipyrv(stats.rv_continuous):
 		if rightbound is not None:
 			right = rightbound
 
-		root, rootinfo = optimize.brentq(self._ppf_to_solve,
-							   left, right, args=q, xtol=self.xtol,full_output=True)
-		return root
+		return optimize.brentq(self._ppf_to_solve,left, right, args=q, xtol=self.xtol)
 
 
 	def compute_percentiles_exact(self, percentiles_list):
@@ -201,7 +199,7 @@ class Posterior_scipyrv(stats.rv_continuous):
 			try:
 				leftbound , rightbound = get_bounds(result,p)
 				res = self.ppf_with_bounds(p,leftbound,rightbound)
-				result[p] = np.around(res,2)
+				result[p] = res
 			except RuntimeError as e:
 				result[p] = e
 
@@ -357,5 +355,5 @@ def percentiles_out_exact(dict):
 
 	percentiles_exact_string = percentiles_exact['runtime'] +'<br>'
 	for x in percentiles_exact['result']:
-		percentiles_exact_string += str(x) + ', ' + str(percentiles_exact['result'][x]) + '<br>'
+		percentiles_exact_string += str(x) + ', ' + str(np.around(percentiles_exact['result'][x],2)) + '<br>'
 	return percentiles_exact_string
