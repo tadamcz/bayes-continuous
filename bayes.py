@@ -7,6 +7,7 @@ from scipy import optimize
 import sys
 import time
 import decimal
+import json
 
 import mpld3
 
@@ -219,6 +220,7 @@ def parse_user_inputs(dictionary):
 				recursively_convert_Decimal_to_float(dictionary[key])
 
 	recursively_convert_Decimal_to_float(dictionary)
+	print("User input:",json.dumps(dictionary, indent=4))
 
 	for p_or_l in ['prior','likelihood']:
 		if dictionary[p_or_l]['family'] == 'normal':
