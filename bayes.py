@@ -121,14 +121,15 @@ class Posterior_scipyrv(stats.rv_continuous):
 		return -self.pdf(x)
 
 	def _cdf(self,x):
+
+		# Memeoization: exploit considering the cdf to be 1 forevermore once it reaches values close to 1
 		for x_lookup in self.cdf_lookup:
 			if x_lookup < x and np.around(self.cdf_lookup[x_lookup],5)==1.0:
 				return 1
 
-		'''check lookup table for largest integral already computed below x. only integrate the remaining bit.
-		same number of integrations, but the integrations are over a much smaller interval
-		similar in spirit to memoization
-		'''
+		# Memeoization for any input: check lookup table for largest integral already computed below x. only
+		# integrate the remaining bit.
+		# Same number of integrations, but the integrations are over a much smaller interval.
 		sortedkeys = sorted(self.cdf_lookup ,reverse=True)
 		for key in sortedkeys:
 			#find the greatest key less than x
@@ -169,13 +170,13 @@ class Posterior_scipyrv(stats.rv_continuous):
 		if rightbound is not None:
 			right = rightbound
 
-		return optimize.brentq(self._ppf_to_solve,left, right, args=q, xtol=self.xtol)
+		return optimize.brentq(self._ppf_to_solve,left, right, args=q, xtol=self.xtol, full_output=False)
 
 
 	def compute_percentiles_exact(self, percentiles_list):
 		start = time.time()
 		result = {}
-		print('Running compute_percentiles_exact. Support: ', self.support(), file=sys.stderr)
+		print('Running compute_percentiles_exact. Support: ', self.support())
 		percentiles_list.sort()
 		percentiles_reordered = sum(zip(percentiles_list,reversed(percentiles_list)), ())[:len(percentiles_list)] #https://stackoverflow.com/a/17436999/8010877
 
@@ -251,6 +252,7 @@ def parse_user_inputs(dictionary):
 		custom_percentiles = [float(p) for p in custom_percentiles]
 		custom_percentiles = [p for p in custom_percentiles if 0<p<1]
 
+
 	return {'prior':prior,
 			'likelihood':likelihood,
 			'override_graph_range':override_graph_range,
@@ -314,7 +316,7 @@ def graph_out(dict):
 	s = time.time()
 	posterior = Posterior_scipyrv(prior,likelihood)
 	e = time.time()
-	print(e-s,'seconds to get posterior pdf',file=sys.stderr)
+	print(e-s,'seconds to get posterior pdf')
 
 	# Plot
 	if override_graph_range:
@@ -326,7 +328,7 @@ def graph_out(dict):
 	plot = plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=x_from,x_to=x_to)
 	plot = mpld3.fig_to_html(plot)
 	e = time.time()
-	print(e-s,'seconds to make plot', file=sys.stderr)
+	print(e-s,'seconds to make plot')
 
 	# Expected value
 	ev = np.around(posterior.expect(),2)
