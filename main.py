@@ -9,9 +9,10 @@ from wtforms.validators import Regexp, NumberRange, EqualTo, DataRequired, Input
 import bayes
 from flask_executor import Executor
 import random
-from sys import stderr
 
 from decimal import Decimal
+
+import json
 
 app = Flask(__name__)
 app.secret_key = '85471922274287851509 97062761986949020795 57366896783488140597 40749154936961460411 00411694272886184644 96318878629748624589 43282652160909407164 81507837348880085650 94716104893291003189 95680230903613490699'
@@ -59,7 +60,7 @@ def recursively_remove_csrf(dictionary):
 def link_to_this_string(dictionary,remove_csrf=False):
 	if remove_csrf:
 		recursively_remove_csrf(dictionary)
-	return '/?data=' + str(dictionary)
+	return '/?data=' + json.dumps(dictionary)
 
 
 @app.route('/')
@@ -67,7 +68,7 @@ def view_without_form_input():
 	form = label_form(DistrForm2())
 	if len(request.args)>0:
 		url_input = request.args['data']
-		url_input = eval(url_input)
+		url_input = json.loads(url_input)
 	else:
 		url_input = None
 
