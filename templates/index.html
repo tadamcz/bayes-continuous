@@ -1,5 +1,6 @@
 <h1>Bayesian update with continuous prior and likelihood</h1>
 
+</div>
 <form method="POST">
 <div><b> Prior </b></div>
 {{ form.prior.family.label }} {{ form.prior.family(onchange="display_fields_prior()") }}
@@ -57,9 +58,10 @@
 {% if link_to_this %}
 <div> Link to this page: <a href="{{ link_to_this }}"> https://bayes-continuous.herokuapp.com{{ link_to_this }} </a>  </div>
 {% endif %}
-
+</div>
 
 <br>
+<div style="max-width: 45em">
 Define the prior and likelihood distributions above. More distribution types could be added if there is sufficient
 interest. One use case that may be of particular interest is updating a prior on a parameter B based on b, an estimate of B from a study. The
 likelihood distribution will typically be a normal distribution, centered around b with a standard deviation equal to the standard error of b.
@@ -67,8 +69,10 @@ If the parameter is a ratio, its error distribution converges to normality slowl
 and is often used. In this case, you could use a lognormal likelihood function, or take logs of both prior and likelihood to perform the update,
 and exponentiate the results back. <a href="https://repl.it/@tmkadamcz/conversions-for-hypothesis-tests#main.py">This tool</a> may be
 helpful for converting between 95% confidence intervals, standard errors, and p-values.
+</div>
 
-<br><br> By Tom Adamczewski. Feedback? <a href="mailto:tmkadamcz@gmail.com">tmkadamcz@gmail.com</a>
+<br>
+<div> By Tom Adamczewski. Feedback? <a href="mailto:tmkadamcz@gmail.com">tmkadamcz@gmail.com</a></div>
 <script>
 
 

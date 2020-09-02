@@ -80,13 +80,13 @@ def view_without_form_input():
 
 		graph = bayes.graph_out(url_input)
 		thread_id_exact = str(random.randint(0, 10000))
-		executor.submit_stored(thread_id_exact, bayes.percentiles_out_exact, url_input)
+		executor.submit_stored(thread_id_exact, bayes.percentiles_out, url_input)
 
 
-		return render_template('hw.html', form=form, graph=graph, thread_id_exact=thread_id_exact,
-							   check_on_background_task=1,link_to_this=link_to_this)
+		return render_template('index.html', form=form, graph=graph, thread_id_exact=thread_id_exact,
+							   check_on_background_task=1, link_to_this=link_to_this)
 	else:
-		return render_template('hw.html',form=form,check_on_background_task=0,thread_id_exact=None)
+		return render_template('index.html', form=form, check_on_background_task=0, thread_id_exact=None)
 
 @app.route("/", methods=['POST'])
 def input_and_output_view():
@@ -96,13 +96,13 @@ def input_and_output_view():
 	form_input = form.data
 	graph = bayes.graph_out(form_input)
 	thread_id_exact = str(random.randint(0, 10000))
-	executor.submit_stored(thread_id_exact, bayes.percentiles_out_exact, form_input)
+	executor.submit_stored(thread_id_exact, bayes.percentiles_out, form_input)
 
 	link_to_this = link_to_this_string(form_input,remove_csrf=True)
 
 
-	return render_template('hw.html',form=form,graph=graph,thread_id_exact=thread_id_exact,
-						   check_on_background_task=1,link_to_this=link_to_this)
+	return render_template('index.html', form=form, graph=graph, thread_id_exact=thread_id_exact,
+						   check_on_background_task=1, link_to_this=link_to_this)
 
 @app.route('/get-result/<thread_id>')
 def get_result(thread_id):
