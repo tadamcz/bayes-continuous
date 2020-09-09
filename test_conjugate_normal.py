@@ -1,5 +1,5 @@
 import pytest
-import bayes
+import backend
 from scipy import stats
 import math
 
@@ -21,7 +21,7 @@ def test_basic(mu_1,sigma_1,mu_2,sigma_2,x,p):
 
     prior_scipy = stats.norm(mu_1, sigma_1)
     likelihood_scipy = stats.norm(mu_2, sigma_2)
-    posterior_numerical = bayes.Posterior_scipyrv(prior_scipy, likelihood_scipy)
+    posterior_numerical = backend.Posterior_scipyrv(prior_scipy, likelihood_scipy)
 
     relative_tolerance = 1e-3
     assert pytest.approx(posterior_numerical.expect(), rel=relative_tolerance) == posterior_analytic.expect(), "Expected Value using expect()"
