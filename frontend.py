@@ -39,51 +39,6 @@ class DistrForm2(FlaskForm):
     custompercentiles = StringField("Provide custom percentiles? (optional, comma-separated)")
 
 
-# @csrf.exempt
-# @app.route('/')
-# def view_without_form_input():
-# 	form = label_form(DistrForm2())
-# 	if len(request.args)>0:
-# 		url_input = request.args['data']
-# 		url_input = json.loads(url_input)
-# 	else:
-# 		url_input = None
-#
-#
-# 	# If URL parameters are provided (a more sophisticated version would check that the input is valid)
-# 	if url_input:
-# 		form = label_form(DistrForm2(data=url_input))
-# 		link_to_this = link_to_this_string(url_input)
-#
-# 		url_input_parsed = parse_user_inputs(url_input)
-# 		graph = backend.graph_out(url_input_parsed)
-# 		thread_id_exact = str(random.randint(0, 10000))
-# 		executor.submit_stored(thread_id_exact, backend.percentiles_out, url_input_parsed)
-#
-#
-# 		return render_template('index.html', form=form, graph=graph, thread_id_exact=thread_id_exact,
-# 							   check_on_background_task=1, link_to_this=link_to_this)
-# 	else:
-# 		return render_template('index.html', form=form, check_on_background_task=0, thread_id_exact=None)
-#
-# @csrf.exempt
-# @app.route("/", methods=['POST'])
-# def input_and_output_view():
-# 	form = DistrForm2()
-# 	label_form(form)
-#
-# 	link_to_this = link_to_this_string(form.data,remove_csrf=True)
-#
-# 	form_input_parsed = parse_user_inputs(form.data)
-# 	graph = backend.graph_out(form_input_parsed)
-#
-# 	thread_id = str(random.randint(0, 10000))
-# 	executor.submit_stored(thread_id, backend.percentiles_out, form_input_parsed)
-#
-#
-# 	return render_template('index.html', form=form, graph=graph, thread_id_exact=thread_id,
-# 						   check_on_background_task=1, link_to_this=link_to_this)
-
 @csrf.exempt
 @app.route("/", methods=['GET', 'POST'])
 def index():
