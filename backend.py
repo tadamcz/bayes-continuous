@@ -150,10 +150,9 @@ class Posterior_scipyrv(stats.rv_continuous):
 
 		return {'result': sorted_result, 'runtime': description_string}
 
-def graph_out(dict):
+def graph_out(user_inputs):
 	plt.rcParams.update({'font.size': 16})
 	# parse inputs
-	user_inputs = parse_user_inputs(dict)
 	prior = user_inputs['prior']
 	likelihood = user_inputs['likelihood']
 	override_graph_range = user_inputs['override_graph_range']
@@ -182,10 +181,8 @@ def graph_out(dict):
 
 	return plot + ev_string
 
-def percentiles_out(dict):
+def percentiles_out(user_inputs):
 	# Parse inputs
-	user_inputs = parse_user_inputs(dict)
-
 	prior = user_inputs['prior']
 	likelihood = user_inputs['likelihood']
 
@@ -270,59 +267,6 @@ def split_integral(function_to_integrate,splitpoint,integrate_to,support=(-np.in
 		integral_left = integrate.quad(function_to_integrate, support_left, splitpoint)[0]
 		integral_right = integrate.quad(function_to_integrate, splitpoint, integrate_to)[0]
 		return integral_left + integral_right
-
-def parse_user_inputs(dictionary):
-	def recursively_convert_Decimal_to_float(dictionary):
-		for key in dictionary:
-			if type(dictionary[key]) is decimal.Decimal:
-				dictionary[key] = float(dictionary[key])
-			if type(dictionary[key]) is dict:
-				recursively_convert_Decimal_to_float(dictionary[key])
-
-	recursively_convert_Decimal_to_float(dictionary)
-	print("User input:",json.dumps(dictionary, indent=4))
-
-	def parse_prior_likelihood(dictionary, p_or_l):
-		if dictionary[p_or_l]['family'] == 'normal':
-			scipy_distribution_object = stats.norm(loc=dictionary[p_or_l]['normal']['param1'],
-												   scale=dictionary[p_or_l]['normal']['param2'])
-
-		if dictionary[p_or_l]['family'] == 'lognormal':
-			scipy_distribution_object = stats.lognorm(scale=math.exp(dictionary[p_or_l]['lognormal']['param1']),
-													  s=dictionary[p_or_l]['lognormal']['param2'])
-
-		if dictionary[p_or_l]['family'] == 'beta':
-			scipy_distribution_object = stats.beta(dictionary[p_or_l]['beta']['param1'],
-												   dictionary[p_or_l]['beta']['param2'])
-
-		if dictionary[p_or_l]['family'] == 'uniform':
-			loc = dictionary[p_or_l]['uniform']['param1']
-			scale = dictionary[p_or_l]['uniform']['param2'] - loc
-			scipy_distribution_object = stats.uniform(loc, scale)
-
-		return scipy_distribution_object
-
-	prior = parse_prior_likelihood(dictionary,'prior')
-	likelihood = parse_prior_likelihood(dictionary, 'likelihood')
-
-	override_graph_range = False
-	if dictionary['graphrange']['param1'] is not None and dictionary['graphrange']['param2'] is not None:
-		override_graph_range = dictionary['graphrange']['param1'], dictionary['graphrange']['param2']
-
-	custom_percentiles = False
-	dictionary['custompercentiles'] = dictionary['custompercentiles'].replace(' ','')  # sanitize input
-	if dictionary['custompercentiles'] != '':
-		custom_percentiles = dictionary['custompercentiles']
-		custom_percentiles = custom_percentiles.split(',')
-		custom_percentiles = [float(p) for p in custom_percentiles]
-		custom_percentiles = [p for p in custom_percentiles if 0<p<1]
-
-
-	return {'prior':prior,
-			'likelihood':likelihood,
-			'override_graph_range':override_graph_range,
-			'custom_percentiles':custom_percentiles
-			}
 
 def plot_pdfs(dict_of_dists,x_from,x_to):
 	x_from ,x_to = float(x_from),float(x_to)
