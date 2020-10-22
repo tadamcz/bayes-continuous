@@ -38,6 +38,10 @@
 	<input type="submit"> 
 </form>
 
+
+{% set example_link = "/?data={%22prior%22:%20{%22family%22:%20%22lognormal%22,%20%22normal%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22lognormal%22:%20{%22param1%22:%201.0,%20%22param2%22:%200.5},%20%22beta%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22uniform%22:%20{%22param1%22:%20null,%20%22param2%22:%20null}},%20%22likelihood%22:%20{%22family%22:%20%22normal%22,%20%22normal%22:%20{%22param1%22:%2010.0,%20%22param2%22:%203.0},%20%22lognormal%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22beta%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22uniform%22:%20{%22param1%22:%20null,%20%22param2%22:%20null}},%20%22graphrange%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22custompercentiles%22:%20%22%22}" %}
+<div id="example"><a href={{ example_link }}>Click here</a> to see an example.</div>
+
 {{graph|safe}}
 
 {% if check_on_background_task==1 %}
