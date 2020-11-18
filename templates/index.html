@@ -1,31 +1,30 @@
 <h1>Bayesian update with continuous prior and likelihood</h1>
 
-</div>
+{% from "_formhelpers.html" import render_field %}
 <form method="POST">
 <div><b> Prior </b></div>
 {{ form.prior.family.label }} {{ form.prior.family(onchange="display_fields_prior()") }}
 
-<div id = "prior-normal-field"> {{ form.prior.normal.label }} {{ form.prior.normal }} </div>
+<div id = "prior-normal-field"> {{ render_field(form.prior.normal) }} </div>
 
-<div id = "prior-lognormal-field"> {{ form.prior.lognormal.label }} {{ form.prior.lognormal }} </div>
+<div id = "prior-lognormal-field"> {{ render_field(form.prior.lognormal) }}  </div>
 
-<div id = "prior-beta-field"> {{ form.prior.beta.label }} {{ form.prior.beta }} </div>
+<div id = "prior-beta-field"> {{ render_field(form.prior.beta) }}  </div>
 
-<div id = "prior-uniform-field"> {{ form.prior.uniform.label }} {{ form.prior.uniform }} </div>
+<div id = "prior-uniform-field"> {{ render_field(form.prior.uniform) }}  </div>
 
 
 <br><div><b> Likelihood </b></div>
 
 {{ form.likelihood.family.label }} {{ form.likelihood.family(onchange="display_fields_likelihood()") }}
 
-<div id = "likelihood-normal-field"> {{ form.likelihood.normal.label }} {{ form.likelihood.normal }} </div>
+<div id = "likelihood-normal-field"> {{ render_field(form.likelihood.normal) }} </div>
 
-<div id = "likelihood-lognormal-field"> {{ form.likelihood.lognormal.label }} {{ form.likelihood.lognormal }} </div>
+<div id = "likelihood-lognormal-field"> {{ render_field(form.likelihood.lognormal) }}  </div>
 
-<div id = "likelihood-beta-field"> {{ form.likelihood.beta.label }} {{ form.likelihood.beta }} </div>
+<div id = "likelihood-beta-field"> {{ render_field(form.likelihood.beta) }}  </div>
 
-<div id = "likelihood-uniform-field"> {{ form.likelihood.uniform.label }} {{ form.likelihood.uniform }} </div>
-
+<div id = "likelihood-uniform-field"> {{ render_field(form.likelihood.uniform) }}  </div>
     <br>
     {{form.graphrange.label}}
     {{form.graphrange}}

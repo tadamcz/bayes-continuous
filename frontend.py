@@ -1,8 +1,8 @@
 from flask import Flask, render_template
 from flask import request, jsonify, redirect
-from flask_wtf import FlaskForm, CSRFProtect
+from flask_wtf import FlaskForm
 from wtforms import StringField, DecimalField, FormField, BooleanField, SelectField
-from wtforms.validators import Regexp, NumberRange, EqualTo, DataRequired, InputRequired
+from wtforms.validators import Regexp, NumberRange, EqualTo, DataRequired, InputRequired, Optional, Required
 from flask_executor import Executor
 
 import backend
@@ -13,23 +13,39 @@ from scipy import stats
 import math
 
 app = Flask(__name__)
-app.secret_key = '85471922274287851509 97062761986949020795 57366896783488140597 40749154936961460411 00411694272886184644 96318878629748624589 43282652160909407164 81507837348880085650 94716104893291003189 95680230903613490699'
-csrf = CSRFProtect(app)
+app.config['WTF_CSRF_ENABLED'] = False  # not needed, there are no user accounts
 
 executor = Executor(app)
 
 
 class TwoParamsForm(FlaskForm):
-    param1 = DecimalField()
-    param2 = DecimalField()
-
+    param1 = DecimalField(validators=[Optional()])
+    param2 = DecimalField(validators=[Optional()])
 
 class DistrForm(FlaskForm):
-    family = SelectField(choices=['normal', 'lognormal', 'beta', 'uniform'])
+    family = SelectField(choices=[('normal','Normal'), ('lognormal','Lognormal'), ('beta','Beta'), ('uniform','Uniform')])
     normal = FormField(TwoParamsForm)
     lognormal = FormField(TwoParamsForm)
     beta = FormField(TwoParamsForm)
     uniform = FormField(TwoParamsForm)
+
+    def validate(self):
+        if not super(DistrForm, self).validate():
+            return False
+        if self.family.data == 'normal':
+            distribution_to_check = self.normal
+        if self.family.data == 'lognormal':
+            distribution_to_check = self.lognormal
+        if self.family.data == 'beta':
+            distribution_to_check = self.beta
+        if self.family.data == 'uniform':
+            distribution_to_check = self.uniform
+
+        if all(x is not None for x in [distribution_to_check.param1.data,distribution_to_check.param2.data]):
+            return True
+        else:
+            distribution_to_check.param1.errors.append('Distribution parameters are required')
+            return False
 
 
 class DistrForm2(FlaskForm):
@@ -39,12 +55,12 @@ class DistrForm2(FlaskForm):
     custompercentiles = StringField("Provide custom percentiles? (optional, comma-separated, e.g. 0.2,0.76)")
 
 
-@csrf.exempt
 @app.route("/", methods=['GET', 'POST'])
 def index():
     form = DistrForm2()
     label_form(form)
     user_input_given = False
+    user_input_valid = False
     if request.method == 'GET':
         if len(request.args) > 0:
             url_input = request.args['data']
@@ -53,18 +69,21 @@ def index():
         else:
             url_input = None
 
-        # If URL parameters are provided (a more sophisticated version would check that the input is valid)
         if url_input:
             form = label_form(DistrForm2(data=url_input))
             link_to_this_string = create_link_to_this_string(url_input)
-            user_input_parsed = parse_user_inputs(url_input)
+            if form.validate():
+                user_input_parsed = parse_user_inputs(url_input)
+                user_input_valid = True
 
     if request.method == 'POST':
         user_input_given = True
-        link_to_this_string = create_link_to_this_string(form.data, remove_csrf=True, convert_decimal_to_float=True)
-        user_input_parsed = parse_user_inputs(form.data)
+        link_to_this_string = create_link_to_this_string(form.data, convert_decimal_to_float=True)
+        if form.validate():
+            user_input_parsed = parse_user_inputs(form.data)
+            user_input_valid = True
 
-    if user_input_given:
+    if user_input_given and user_input_valid:
         graph = backend.graph_out(user_input_parsed)
         thread_id_exact = str(random.randint(0, 10000))
         executor.submit_stored(thread_id_exact, backend.percentiles_out, user_input_parsed)
@@ -75,7 +94,6 @@ def index():
         return render_template('index.html', form=form, check_on_background_task=0, thread_id_exact=None)
 
 
-@csrf.exempt
 @app.route('/get-result/<thread_id>')
 def get_result(thread_id):
     if not executor.futures.done(thread_id):
@@ -100,13 +118,6 @@ def label_form(form):
     return form
 
 
-def recursively_remove_csrf(dictionary):
-    dictionary.pop('csrf_token')
-    for key in dictionary:
-        if type(dictionary[key]) is dict:
-            recursively_remove_csrf(dictionary[key])
-
-
 def recursively_convert_decimal_to_float(dictionary):
     for key, value in dictionary.items():
         if type(value) == decimal.Decimal:
@@ -115,9 +126,7 @@ def recursively_convert_decimal_to_float(dictionary):
             recursively_convert_decimal_to_float(value)
 
 
-def create_link_to_this_string(dictionary, remove_csrf=False, convert_decimal_to_float=False):
-    if remove_csrf:
-        recursively_remove_csrf(dictionary)
+def create_link_to_this_string(dictionary, convert_decimal_to_float=False):
     if convert_decimal_to_float:
         recursively_convert_decimal_to_float(dictionary)
     return '/?data=' + json.dumps(dictionary)
