@@ -1,3 +1,9 @@
+<head>
+    <meta charset="UTF-8">
+    <title>Bayesian update with continuous prior and likelihood<</title>
+    <link rel="stylesheet" href= {{url_for('static', filename='/styles.css') }}>
+</head>
+
 <h1>Bayesian update with continuous prior and likelihood</h1>
 
 {% from "_formhelpers.html" import render_field %}
@@ -26,12 +32,11 @@
 
 <div id = "likelihood-uniform-field"> {{ render_field(form.likelihood.uniform) }}  </div>
     <br>
-    {{form.graphrange.label}}
-    {{form.graphrange}}
+    {{render_field(form.graphrange)}}
+
 
     <br>
-    {{form.custompercentiles.label}}
-    {{form.custompercentiles}}
+    {{render_field(form.custompercentiles)}}
 
 <br><br>
 	<input type="submit"> 
