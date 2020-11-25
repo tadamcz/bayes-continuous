@@ -1,9 +1,9 @@
-WTForms
-scipy
-Flask_WTF
-matplotlib
-mpld3
-Flask
-numpy
 gunicorn
-Flask-Executor
+WTForms~=2.3.3
+scipy~=1.5.4
+matplotlib~=3.1.2
+mpld3~=0.3
+numpy~=1.19.3
+Flask~=1.1.2
+flask_executor~=0.9.3
+Flask_WTF~=0.14.3
