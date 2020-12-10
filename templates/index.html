@@ -2,6 +2,7 @@
     <meta charset="UTF-8">
     <title>Bayesian update with continuous prior and likelihood<</title>
     <link rel="stylesheet" href= {{url_for('static', filename='/styles.css') }}>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     {% include "_google_analytics.html" %}
 </head>
 
@@ -12,11 +13,30 @@
 <div><b> Prior </b></div>
 {{ form.prior.family.label }} {{ form.prior.family(onchange="display_fields_prior()") }}
 
-<div id = "prior-normal-field"> {{ render_field(form.prior.normal) }} </div>
+{% from "_latex_macros.html" import
+        prior_density_eq,
+        likelihood_density_eq,
+        normal_pdf_eq,
+        lognormal_pdf_eq,
+        beta_pdf_eq
+        %}
 
-<div id = "prior-lognormal-field"> {{ render_field(form.prior.lognormal) }}  </div>
+<div id = "prior-normal-field">
+    {{ render_field(form.prior.normal) }}
+    Density function: $$ {{prior_density_eq}} = {{ normal_pdf_eq(0) }} $$
+</div>
 
-<div id = "prior-beta-field"> {{ render_field(form.prior.beta) }}  </div>
+<div id = "prior-lognormal-field">
+    {{ render_field(form.prior.lognormal) }}
+    Density function: $$ {{prior_density_eq}} = {{ lognormal_pdf_eq(0) }} $$
+</div>
+
+<div id = "prior-beta-field">
+    {{ render_field(form.prior.beta) }}
+    Density function: $$ {{prior_density_eq}} = {{ beta_pdf_eq(0) }} $$
+    (See <a href="https://en.wikipedia.org/wiki/Beta_distribution">Wikipedia</a> for the definition
+    of the function \(\mathrm {B} \) in the normalization constant.)
+</div>
 
 <div id = "prior-uniform-field"> {{ render_field(form.prior.uniform) }}  </div>
 
@@ -25,11 +45,22 @@
 
 {{ form.likelihood.family.label }} {{ form.likelihood.family(onchange="display_fields_likelihood()") }}
 
-<div id = "likelihood-normal-field"> {{ render_field(form.likelihood.normal) }} </div>
+<div id = "likelihood-normal-field">
+    {{ render_field(form.likelihood.normal) }}
+    Density function: $$ {{ likelihood_density_eq }} = {{ normal_pdf_eq(1) }} $$
+</div>
 
-<div id = "likelihood-lognormal-field"> {{ render_field(form.likelihood.lognormal) }}  </div>
+<div id = "likelihood-lognormal-field">
+    {{ render_field(form.likelihood.lognormal) }}
+    Density function: $$ {{likelihood_density_eq}} = {{ lognormal_pdf_eq(1) }} $$
+</div>
 
-<div id = "likelihood-beta-field"> {{ render_field(form.likelihood.beta) }}  </div>
+<div id = "likelihood-beta-field">
+    {{ render_field(form.likelihood.beta) }}
+    Density function: $$ {{likelihood_density_eq}} = {{ beta_pdf_eq(1) }} $$
+    (See <a href="https://en.wikipedia.org/wiki/Beta_distribution">Wikipedia</a> for the definition
+    of the function \(\mathrm {B} \) in the normalization constant.)
+</div>
 
 <div id = "likelihood-uniform-field"> {{ render_field(form.likelihood.uniform) }}  </div>
     <br>

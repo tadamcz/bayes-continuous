@@ -103,15 +103,17 @@ def get_result(thread_id):
 
 
 def label_form(form):
+    i = 0
     for obj in [form.prior, form.likelihood]:
-        obj.normal.param1.label = "mean"
-        obj.normal.param2.label = "sd"
+        obj.normal.param1.label = "\( \mu_"+str(i)+"\)"
+        obj.normal.param2.label = "\( \sigma_"+str(i)+"\)"
 
-        obj.lognormal.param1.label = "mu"
-        obj.lognormal.param2.label = "sigma"
+        obj.lognormal.param1.label = "\( \mu_"+str(i)+"\)"
+        obj.lognormal.param2.label = "\( \sigma_"+str(i)+"\)"
 
-        obj.beta.param1.label = "alpha"
-        obj.beta.param2.label = "beta"
+        obj.beta.param1.label = "\( \\alpha_"+str(i)+"\)"
+        obj.beta.param2.label = "\( \\beta_"+str(i)+"\)"
+        i += 1
 
     form.graphrange.param1.label = "From"
     form.graphrange.param2.label = "To"

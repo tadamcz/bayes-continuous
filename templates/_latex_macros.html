@@ -1,0 +1,41 @@
+{% macro normal_pdf_eq(i) %}
+    {% raw %}
+    {\frac {1}{\sigma_
+        {% endraw %}{{i}}{% raw %}
+    {\sqrt {2\pi }}}}\exp \left(-{\frac {1}{2}}\left({\frac {\theta-\mu_
+        {% endraw %}{{i}}{% raw %}
+    }{\sigma_
+        {% endraw %}{{i}}{% raw %}
+    }}\right)^{2} \right)
+    {% endraw %}
+{% endmacro %}
+
+{% macro lognormal_pdf_eq(i) %}
+    {% raw %}
+    {\frac {1}{\theta\sigma_
+        {% endraw %}{{i}}{% raw %}
+    {\sqrt {2\pi }}}}\ \exp \left(-{\frac {\left(\ln \theta-\mu_
+        {% endraw %}{{i}}{% raw %}
+    \right)^{2}}{2\sigma_
+        {% endraw %}{{i}}{% raw %}
+    ^{2}}}\right)
+    {% endraw %}
+{% endmacro %}
+
+{% macro beta_pdf_eq(i) %}
+    {% raw %}
+    \frac {\theta^{\alpha_
+        {% endraw %}{{i}}{% raw %}
+    -1}(1-\theta)^{\beta_
+        {% endraw %}{{i}}{% raw %}
+    -1}}{\mathrm {B} (\alpha_
+        {% endraw %}{{i}}{% raw %}
+    ,\beta_
+        {% endraw %}{{i}}{% raw %}
+    )}
+    {% endraw %}
+{% endmacro %}
+
+
+{% set prior_density_eq = "f_0(\\theta) = P(\\Theta=\\theta)" %}
+{% set likelihood_density_eq = "f_1(\\theta) = P(E \mid \\Theta=\\theta)" %}
