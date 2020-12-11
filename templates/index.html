@@ -2,75 +2,121 @@
     <meta charset="UTF-8">
     <title>Bayesian update with continuous prior and likelihood<</title>
     <link rel="stylesheet" href= {{url_for('static', filename='/styles.css') }}>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     {% include "_google_analytics.html" %}
 </head>
 
 <h1>Bayesian update with continuous prior and likelihood</h1>
 
-{% from "_formhelpers.html" import render_field %}
+{####### Imports  #######}
+{% from "_formhelpers.html" import render_field, render_field_nolabel %}
+{% from "_latex_macros.html" import
+        prior_density_eq,
+        likelihood_density_eq,
+        normal_pdf_eq,
+        lognormal_pdf_eq,
+        beta_pdf_eq,
+        binomial_pdf_eq
+        %}
+
+{# Beginning of form #}
 <form method="POST">
-<div><b> Prior </b></div>
-{{ form.prior.family.label }} {{ form.prior.family(onchange="display_fields_prior()") }}
+{####### PRIOR  #######}
+<div class="form_section">
+    <div class="form_section_title">
+        Prior
+    </div>
 
-<div id = "prior-normal-field"> {{ render_field(form.prior.normal) }} </div>
-
-<div id = "prior-lognormal-field"> {{ render_field(form.prior.lognormal) }}  </div>
-
-<div id = "prior-beta-field"> {{ render_field(form.prior.beta) }}  </div>
-
-<div id = "prior-uniform-field"> {{ render_field(form.prior.uniform) }}  </div>
+{##### Choose Family  #####}
+{{ form.prior.family.label }} {{ form.prior.family(onchange="display_fields_for_selected_family('prior')") }}
 
 
-<br><div><b> Likelihood </b></div>
 
-{{ form.likelihood.family.label }} {{ form.likelihood.family(onchange="display_fields_likelihood()") }}
+<div id = "prior-normal-field">
+    {{ render_field_nolabel(form.prior.normal) }}
+    Density function: $$ {{prior_density_eq}} = {{ normal_pdf_eq(0) }} $$
+</div>
 
-<div id = "likelihood-normal-field"> {{ render_field(form.likelihood.normal) }} </div>
+<div id = "prior-lognormal-field">
+    {{ render_field_nolabel(form.prior.lognormal) }}
+    Density function: $$ {{prior_density_eq}} = {{ lognormal_pdf_eq(0) }} $$
+</div>
 
-<div id = "likelihood-lognormal-field"> {{ render_field(form.likelihood.lognormal) }}  </div>
+<div id = "prior-beta-field">
+    {{ render_field_nolabel(form.prior.beta) }}
+    Density function: $$ {{prior_density_eq}} = {{ beta_pdf_eq(0) }} $$
+    (See <a href="https://en.wikipedia.org/wiki/Beta_distribution">Wikipedia</a> for the definition
+    of the function \(\mathrm {B} \) in the normalization constant.)
+</div>
 
-<div id = "likelihood-beta-field"> {{ render_field(form.likelihood.beta) }}  </div>
+<div id = "prior-uniform-field"> {{ render_field_nolabel(form.prior.uniform) }}  </div>
+</div>
 
-<div id = "likelihood-uniform-field"> {{ render_field(form.likelihood.uniform) }}  </div>
-    <br>
-    {{render_field(form.graphrange)}}
+{####### LIKELIHOOD  #######}
+<div class="form_section">
+    <div class="form_section_title">
+        Likelihood
+    </div>
 
+{##### Choose Family  #####}
+{{ form.likelihood.family.label }} {{ form.likelihood.family(onchange="display_fields_for_selected_family('likelihood')") }}
 
-    <br>
-    {{render_field(form.custompercentiles)}}
+<div id = "likelihood-normal-field">
+    {{ render_field_nolabel(form.likelihood.normal) }}
+    Likelihood function: $$ {{ likelihood_density_eq }} = {{ normal_pdf_eq(1) }} $$
+</div>
 
-<br><br>
-	<input type="submit"> 
+<div id = "likelihood-lognormal-field">
+    {{ render_field_nolabel(form.likelihood.lognormal) }}
+    Likelihood function: $$ {{likelihood_density_eq}} = {{ lognormal_pdf_eq(1) }} $$
+</div>
+
+<div id = "likelihood-beta-field">
+    {{ render_field_nolabel(form.likelihood.beta) }}
+    Likelihood function: $$ {{likelihood_density_eq}} = {{ beta_pdf_eq(1) }} $$
+    (See <a href="https://en.wikipedia.org/wiki/Beta_distribution">Wikipedia</a> for the definition
+    of the function \(\mathrm {B} \) in the normalization constant.)
+</div>
+
+<div id = "likelihood-uniform-field"> {{ render_field_nolabel(form.likelihood.uniform) }}  </div>
+
+<div id = "likelihood-binomial-field">
+    {{ render_field_nolabel(form.likelihood.binomial) }}
+    Likelihood function: $$ {{likelihood_density_eq}} = {{ binomial_pdf_eq() }} $$
+</div>
+
+</div>
+
+{####### GRAPH RANGE  #######}
+<div class="form_section">{{render_field(form.graphrange)}}</div>
+<div class="form_section">{{render_field(form.custompercentiles)}}</div>
+
+{####### SUBMIT BUTTON  #######}
+<div class="form_section"><input type="submit"></div>
 </form>
 
+<div id="example">
+    {% set example_link = "/?data={%22prior%22:%20{%22family%22:%20%22lognormal%22,%20%22normal%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22lognormal%22:%20{%22param1%22:%201.0,%20%22param2%22:%200.5},%20%22beta%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22uniform%22:%20{%22param1%22:%20null,%20%22param2%22:%20null}},%20%22likelihood%22:%20{%22family%22:%20%22normal%22,%20%22normal%22:%20{%22param1%22:%2010.0,%20%22param2%22:%203.0},%20%22lognormal%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22beta%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22uniform%22:%20{%22param1%22:%20null,%20%22param2%22:%20null}},%20%22graphrange%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22custompercentiles%22:%20%22%22}" %}
+    <a rel="nofollow" href={{ example_link }}>Click here</a> to see an example.
+</div>
 
-{% set example_link = "/?data={%22prior%22:%20{%22family%22:%20%22lognormal%22,%20%22normal%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22lognormal%22:%20{%22param1%22:%201.0,%20%22param2%22:%200.5},%20%22beta%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22uniform%22:%20{%22param1%22:%20null,%20%22param2%22:%20null}},%20%22likelihood%22:%20{%22family%22:%20%22normal%22,%20%22normal%22:%20{%22param1%22:%2010.0,%20%22param2%22:%203.0},%20%22lognormal%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22beta%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22uniform%22:%20{%22param1%22:%20null,%20%22param2%22:%20null}},%20%22graphrange%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22custompercentiles%22:%20%22%22}" %}
-<div id="example"><a rel="nofollow" href={{ example_link }}>Click here</a> to see an example.</div>
+<div class="page_section">
+    {{graph|safe}}
+</div>
 
-{{graph|safe}}
-
+<div class="page_section">
 {% if check_on_background_task==1 %}
-<br>
-
 <div id=percentiles_exact_message></div>
 <div id="percentiles_exact_status">Status: waiting for status</div>
 <div id="percentiles_exact_result"></div>
-
-<br>
-
-<!-- <div id=percentiles_mcmc_message></div>
-<div id="percentiles_mcmc_status">Status: waiting for status</div>
-<div id="percentiles_mcmc_result"></div> -->
-
 {% endif %}
+</div>
 
 {% if link_to_this %}
 <div> <a href="{{ link_to_this }}">Link to this page</a>.</div>
 {% endif %}
-</div>
 
-<br>
-<div style="max-width: 45em">
+<div class="page_section">
 Define the prior and likelihood distributions above. More distribution types could be added if there is sufficient
 interest. One use case that may be of particular interest is updating a prior on a parameter B based on b, an estimate of B from a study. The
 likelihood distribution will typically be a normal distribution, centered around b with a standard deviation equal to the standard error of b.
@@ -80,8 +126,7 @@ and exponentiate the results back. <a href="https://repl.it/@tmkadamcz/conversio
 helpful for converting between 95% confidence intervals, standard errors, and p-values.
 </div>
 
-<br>
-<div> By <a href="https://tmkadamcz.github.io/">Tom Adamczewski</a>.
+<div class="footer"> By <a href="https://tmkadamcz.github.io/">Tom Adamczewski</a>.
     Code <a href="https://github.com/tmkadamcz/bayes-continuous">on GitHub</a>.
     <div style="max-width: 40em">
         {% include "_feedback-form.html" %}
@@ -128,76 +173,54 @@ function check_on_background_task(thread_id,exact_or_mcmc) {
 
 //two curly braces to use parameters passed into render_template
 if ( {{check_on_background_task}}==1 ) {
-// check_on_background_task( {{thread_id_mcmc}},'mcmc');
 check_on_background_task( {{thread_id_exact}},'exact');
 }
 
 if ({{check_on_background_task}}==1) {
 document.getElementById("percentiles_exact_message").innerHTML = "Percentiles of posterior distribution:";
-// document.getElementById("percentiles_mcmc_message").innerHTML = "Percentiles of posterior distribution (MCMC):"
-
 }
 
 
 
-function display_fields_prior() {
-  var x = document.getElementById("prior-family").value;
+function display_fields_for_selected_family(prior_or_likelihood) {
+  var x = document.getElementById(prior_or_likelihood+"-family").value;
   
   // first hide all fields
-  document.getElementById("prior-normal-field").style.display = "none" ;
-  document.getElementById("prior-lognormal-field").style.display = "none" ;
-  document.getElementById("prior-beta-field").style.display = "none" ; 
-  document.getElementById("prior-uniform-field").style.display = "none" ;
+  document.getElementById(prior_or_likelihood+"-normal-field").style.display = "none" ;
+  document.getElementById(prior_or_likelihood+"-lognormal-field").style.display = "none" ;
+  document.getElementById(prior_or_likelihood+"-beta-field").style.display = "none" ;
+  document.getElementById(prior_or_likelihood+"-uniform-field").style.display = "none" ;
+  if (prior_or_likelihood === 'likelihood') {
+      document.getElementById(prior_or_likelihood + "-binomial-field").style.display = "none";
+  }
 
 
 
   // then display the selected field
   if (x == "normal") {
-  document.getElementById("prior-normal-field").style.display = "block";
+  document.getElementById(prior_or_likelihood+"-normal-field").style.display = "block";
   }
 
   if (x == "lognormal") {
-  document.getElementById("prior-lognormal-field").style.display = "block";
+  document.getElementById(prior_or_likelihood+"-lognormal-field").style.display = "block";
   }
 
   if (x == "beta") {
-  document.getElementById("prior-beta-field").style.display = "block";
+  document.getElementById(prior_or_likelihood+"-beta-field").style.display = "block";
   }
 
   if (x == "uniform") {
-  document.getElementById("prior-uniform-field").style.display = "block";
+  document.getElementById(prior_or_likelihood+"-uniform-field").style.display = "block";
+  }
+
+  if (x == "binomial") {
+  document.getElementById(prior_or_likelihood+"-binomial-field").style.display = "block";
   }
 }
 
-function display_fields_likelihood() {
-  var x = document.getElementById("likelihood-family").value;
-  
-  // first hide all fields
-  document.getElementById("likelihood-normal-field").style.display = "none" ;
-  document.getElementById("likelihood-lognormal-field").style.display = "none" ;
-  document.getElementById("likelihood-beta-field").style.display = "none" ; 
-  document.getElementById("likelihood-uniform-field").style.display = "none" ;
-
-  // then display the selected field
-  if (x == "normal") {
-  document.getElementById("likelihood-normal-field").style.display = "block";
-  }
-
-  if (x == "lognormal") {
-  document.getElementById("likelihood-lognormal-field").style.display = "block";
-  }
-
-  if (x == "beta") {
-  document.getElementById("likelihood-beta-field").style.display = "block";
-  }
-
-  if (x == "uniform") {
-  document.getElementById("likelihood-uniform-field").style.display = "block";
-  }
-}
 
 // run it once at the beginning
-display_fields_prior()  
-display_fields_likelihood()  
+display_fields_for_selected_family('prior')
+display_fields_for_selected_family('likelihood')
 
 </script>

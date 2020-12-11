@@ -1,3 +1,6 @@
+* add binomial likelihood
+* notify user when there are conjugate priors
+
 * refactor
 	* https://pypi.org/project/pep8/
 * new ways to inputs distributions

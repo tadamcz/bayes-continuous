@@ -150,6 +150,16 @@ class Posterior_scipyrv(stats.rv_continuous):
 
 		return {'result': sorted_result, 'runtime': description_string}
 
+class CustomFromPDF(stats.rv_continuous):
+	def __init__(self, pdf_callable,a=-np.inf,b=np.inf):
+		super(CustomFromPDF, self).__init__()
+		self.pdf_callable = pdf_callable
+		self.a = a
+		self.b = b
+
+	def _pdf(self,x):
+		return self.pdf_callable(x)
+
 def graph_out(user_inputs):
 	plt.rcParams.update({'font.size': 16})
 	# parse inputs
@@ -276,14 +286,14 @@ def plot_pdfs(dict_of_dists,x_from,x_to):
 	for dist in dict_of_dists:
 		axes.plot(x,dict_of_dists[dist].pdf(x),label=dist)
 	axes.legend()
-	axes.set_xlabel("X")
+	axes.set_xlabel("θ")
 	axes.set_ylabel("Probability density")
 	return figure
 
 def plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=-50,x_to=50):
-	prior_string = "P(X)"
-	likelihood_string = "P(E|X)"
-	posterior_string = "P(X|E)"
+	prior_string = "f₀(θ) = P(θ)"
+	likelihood_string = "f₁(θ) = P(E|θ)"
+	posterior_string = "P(θ|E)"
 
 	plot = plot_pdfs({prior_string:prior, likelihood_string:likelihood, posterior_string:posterior},
 					x_from,

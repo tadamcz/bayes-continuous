@@ -1,1 +1,6 @@
 .errors {color: red}
+
+.form_section_title {font-weight: bold}
+.form_section {margin-top: 1em}
+.page_section {margin-top: 1em; max-width: 45em}
+.footer {margin-top: 1em}
