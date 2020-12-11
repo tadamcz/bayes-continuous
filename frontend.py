@@ -59,8 +59,8 @@ def label_form(form,i,family_list):
         form.beta.param2.label = "\( \\beta_"+str(i)+"\)"
 
     if 'binomial' in family_list:
-        form.binomial.param1.label = "successes \(s_"+str(i)+"\)"
-        form.binomial.param2.label = "failures \(f_"+str(i)+"\)"
+        form.binomial.param1.label = "successes \(s\)"
+        form.binomial.param2.label = "failures \(f\)"
     return form
 
 class PriorForm(DistrFrom):
@@ -78,7 +78,7 @@ class PriorForm(DistrFrom):
 
 class LikelihoodForm(DistrFrom):
     family = SelectField(choices=[('normal','Normal'), ('lognormal','Lognormal'), ('beta','Beta'), ('uniform','Uniform'),
-                                  ('binomial','Bionomial (as a function of success probability)')])
+                                  ('binomial','Binomial (as a function of success probability)')])
     normal = FormField(TwoParamsForm)
     lognormal = FormField(TwoParamsForm)
     beta = FormField(TwoParamsForm)

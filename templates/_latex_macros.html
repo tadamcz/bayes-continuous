@@ -36,19 +36,9 @@
     {% endraw %}
 {% endmacro %}
 
-{% macro binomial_pdf_eq(i) %}
+{% macro binomial_pdf_eq() %}
     {% raw %}
-      \binom{s_
-        {% endraw %}{{i}}{% raw %}
-    +f_
-        {% endraw %}{{i}}{% raw %}
-    }{s_
-        {% endraw %}{{i}}{% raw %}
-    } \theta^{s_
-        {% endraw %}{{i}}{% raw %}
-    }(1-\theta)^{f_
-        {% endraw %}{{i}}{% raw %}
-    }
+      \binom{s+f}{s} \theta^{s}(1-\theta)^{f}
     {% endraw %}
 {% endmacro %}
 
