@@ -22,15 +22,11 @@ class TwoParamsForm(FlaskForm):
     param1 = DecimalField(validators=[Optional()])
     param2 = DecimalField(validators=[Optional()])
 
-class DistrForm(FlaskForm):
-    family = SelectField(choices=[('normal','Normal'), ('lognormal','Lognormal'), ('beta','Beta'), ('uniform','Uniform')])
-    normal = FormField(TwoParamsForm)
-    lognormal = FormField(TwoParamsForm)
-    beta = FormField(TwoParamsForm)
-    uniform = FormField(TwoParamsForm)
 
+
+class DistrFrom(FlaskForm):
     def validate(self):
-        if not super(DistrForm, self).validate():
+        if not super(DistrFrom, self).validate():
             return False
         if self.family.data == 'normal':
             distribution_to_check = self.normal
@@ -38,8 +34,10 @@ class DistrForm(FlaskForm):
             distribution_to_check = self.lognormal
         if self.family.data == 'beta':
             distribution_to_check = self.beta
-        if self.family.data == 'uniform':
-            distribution_to_check = self.uniform
+        if self.family.data == 'uniself':
+            distribution_to_check = self.uniself
+        if self.family.data == 'binomial':
+            distribution_to_check = self.binomial
 
         if all(x is not None for x in [distribution_to_check.param1.data,distribution_to_check.param2.data]):
             return True
@@ -47,18 +45,66 @@ class DistrForm(FlaskForm):
             distribution_to_check.param1.errors.append('Distribution parameters are required')
             return False
 
+def label_form(form,i,family_list):
+    if 'normal' in family_list:
+        form.normal.param1.label = "\( \mu_"+str(i)+"\)"
+        form.normal.param2.label = "\( \sigma_"+str(i)+"\)"
+
+    if 'lognormal' in family_list:
+        form.lognormal.param1.label = "\( \mu_"+str(i)+"\)"
+        form.lognormal.param2.label = "\( \sigma_"+str(i)+"\)"
+
+    if 'beta' in family_list:
+        form.beta.param1.label = "\( \\alpha_"+str(i)+"\)"
+        form.beta.param2.label = "\( \\beta_"+str(i)+"\)"
+
+    if 'binomial' in family_list:
+        form.binomial.param1.label = "successes \(s_"+str(i)+"\)"
+        form.binomial.param2.label = "failures \(f_"+str(i)+"\)"
+    return form
+
+class PriorForm(DistrFrom):
+    family = SelectField(choices=[('normal','Normal'), ('lognormal','Lognormal'), ('beta','Beta'), ('uniform','Uniform')])
+    normal = FormField(TwoParamsForm)
+    lognormal = FormField(TwoParamsForm)
+    beta = FormField(TwoParamsForm)
+    uniform = FormField(TwoParamsForm)
+    def __init__(self, *args, **kwargs):
+        super(PriorForm, self).__init__(*args, **kwargs)
+        self = label_form(self,i=0,family_list=['normal','lognormal','beta','uniform'])
+
+
+
+
+class LikelihoodForm(DistrFrom):
+    family = SelectField(choices=[('normal','Normal'), ('lognormal','Lognormal'), ('beta','Beta'), ('uniform','Uniform'),
+                                  ('binomial','Bionomial (as a function of success probability)')])
+    normal = FormField(TwoParamsForm)
+    lognormal = FormField(TwoParamsForm)
+    beta = FormField(TwoParamsForm)
+    uniform = FormField(TwoParamsForm)
+    binomial = FormField(TwoParamsForm)
+
+    def __init__(self, *args, **kwargs):
+        super(LikelihoodForm, self).__init__(*args, **kwargs)
+        self = label_form(self,i=1,family_list=['normal','lognormal','beta','uniform','binomial'])
+
+
 
 class DistrForm2(FlaskForm):
-    prior = FormField(DistrForm)
-    likelihood = FormField(DistrForm)
+    prior = FormField(PriorForm)
+    likelihood = FormField(LikelihoodForm)
     graphrange = FormField(TwoParamsForm, "Override default settings for graph domain? (optional)")
     custompercentiles = StringField("Provide custom percentiles? (optional, comma-separated, e.g. 0.2,0.76)")
+    def __init__(self, *args, **kwargs):
+        super(DistrForm2, self).__init__(*args, **kwargs)
+        self.graphrange.param1.label = "From"
+        self.graphrange.param2.label = "To"
 
 
 @app.route("/", methods=['GET', 'POST'])
 def index():
     form = DistrForm2()
-    label_form(form)
     user_input_given = False
     user_input_valid = False
     if request.method == 'GET':
@@ -70,7 +116,7 @@ def index():
             url_input = None
 
         if url_input:
-            form = label_form(DistrForm2(data=url_input))
+            form = DistrForm2(data=url_input)
             link_to_this_string = create_link_to_this_string(url_input)
             if form.validate():
                 user_input_parsed = parse_user_inputs(url_input)
@@ -102,22 +148,7 @@ def get_result(thread_id):
     return jsonify({'status': 'done', 'result': future.result()})
 
 
-def label_form(form):
-    i = 0
-    for obj in [form.prior, form.likelihood]:
-        obj.normal.param1.label = "\( \mu_"+str(i)+"\)"
-        obj.normal.param2.label = "\( \sigma_"+str(i)+"\)"
 
-        obj.lognormal.param1.label = "\( \mu_"+str(i)+"\)"
-        obj.lognormal.param2.label = "\( \sigma_"+str(i)+"\)"
-
-        obj.beta.param1.label = "\( \\alpha_"+str(i)+"\)"
-        obj.beta.param2.label = "\( \\beta_"+str(i)+"\)"
-        i += 1
-
-    form.graphrange.param1.label = "From"
-    form.graphrange.param2.label = "To"
-    return form
 
 
 def recursively_convert_decimal_to_float(dictionary):
@@ -162,6 +193,13 @@ def parse_user_inputs(dictionary):
             loc = dictionary[p_or_l]['uniform']['param1']
             scale = dictionary[p_or_l]['uniform']['param2'] - loc
             scipy_distribution_object = stats.uniform(loc, scale)
+
+        if dictionary[p_or_l]['family'] == 'binomial':
+            successes = dictionary[p_or_l]['binomial']['param1']
+            failures = dictionary[p_or_l]['binomial']['param2']
+            trials = successes+failures
+            binomial_pdf = lambda theta: stats.binom.pmf(successes,trials,theta)
+            scipy_distribution_object = backend.CustomFromPDF(binomial_pdf,a=0,b=1)
 
         return scipy_distribution_object
 

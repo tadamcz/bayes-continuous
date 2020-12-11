@@ -36,6 +36,21 @@
     {% endraw %}
 {% endmacro %}
 
+{% macro binomial_pdf_eq(i) %}
+    {% raw %}
+      \binom{s_
+        {% endraw %}{{i}}{% raw %}
+    +f_
+        {% endraw %}{{i}}{% raw %}
+    }{s_
+        {% endraw %}{{i}}{% raw %}
+    } \theta^{s_
+        {% endraw %}{{i}}{% raw %}
+    }(1-\theta)^{f_
+        {% endraw %}{{i}}{% raw %}
+    }
+    {% endraw %}
+{% endmacro %}
 
 {% set prior_density_eq = "f_0(\\theta) = P(\\Theta=\\theta)" %}
 {% set likelihood_density_eq = "f_1(\\theta) = P(E \mid \\Theta=\\theta)" %}

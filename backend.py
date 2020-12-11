@@ -150,6 +150,16 @@ class Posterior_scipyrv(stats.rv_continuous):
 
 		return {'result': sorted_result, 'runtime': description_string}
 
+class CustomFromPDF(stats.rv_continuous):
+	def __init__(self, pdf_callable,a=-np.inf,b=np.inf):
+		super(CustomFromPDF, self).__init__()
+		self.pdf_callable = pdf_callable
+		self.a = a
+		self.b = b
+
+	def _pdf(self,x):
+		return self.pdf_callable(x)
+
 def graph_out(user_inputs):
 	plt.rcParams.update({'font.size': 16})
 	# parse inputs
