@@ -50,6 +50,20 @@
 </div>
 
 <div id = "prior-uniform-field"> {{ render_field_nolabel(form.prior.uniform) }}  </div>
+
+
+<div id = "prior-diff_log_betas-field">
+    {{ render_field_nolabel(form.prior.diff_log_betas) }}
+    <p>The distribution of log(R) where R is the ratio of a Beta distribution
+    on the numerator and another Beta distribution on the denominator. Useful when R is
+    a risk ratio, and a point estimate and standard error for the <i>log risk ratio</i> is provided
+        by the study.</p>
+
+    <p>The distribution is calculated using Monte Carlo simulation (with 10,000 samples) and kernel
+    density estimation, so it is a slight approximation, and it's a little bit slower than
+        other distributions. (Monte Carlo simulation is the fastest method I know of).</p>
+</div>
+
 </div>
 
 {####### LIKELIHOOD  #######}
@@ -131,6 +145,7 @@ helpful for converting between 95% confidence intervals, standard errors, and p-
     <div style="max-width: 40em">
         {% include "_feedback-form.html" %}
     </div>
+</div>
 <script>
 
 
@@ -193,29 +208,13 @@ function display_fields_for_selected_family(prior_or_likelihood) {
   if (prior_or_likelihood === 'likelihood') {
       document.getElementById(prior_or_likelihood + "-binomial-field").style.display = "none";
   }
-
-
-
-  // then display the selected field
-  if (x == "normal") {
-  document.getElementById(prior_or_likelihood+"-normal-field").style.display = "block";
+  if (prior_or_likelihood === 'prior') {
+      document.getElementById(prior_or_likelihood + "-diff_log_betas-field").style.display = "none";
   }
 
-  if (x == "lognormal") {
-  document.getElementById(prior_or_likelihood+"-lognormal-field").style.display = "block";
-  }
+  // Display the selected field
+  document.getElementById(prior_or_likelihood+"-"+x+"-field").style.display = "block";
 
-  if (x == "beta") {
-  document.getElementById(prior_or_likelihood+"-beta-field").style.display = "block";
-  }
-
-  if (x == "uniform") {
-  document.getElementById(prior_or_likelihood+"-uniform-field").style.display = "block";
-  }
-
-  if (x == "binomial") {
-  document.getElementById(prior_or_likelihood+"-binomial-field").style.display = "block";
-  }
 }
 
 

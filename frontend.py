@@ -11,6 +11,7 @@ import decimal
 import json
 from scipy import stats
 import math
+import numpy as np
 
 app = Flask(__name__)
 app.config['WTF_CSRF_ENABLED'] = False  # not needed, there are no user accounts
@@ -22,9 +23,14 @@ class TwoParamsForm(FlaskForm):
     param1 = DecimalField(validators=[Optional()])
     param2 = DecimalField(validators=[Optional()])
 
-
+class FourParamsForm(FlaskForm):
+    param1 = DecimalField(validators=[Optional()])
+    param2 = DecimalField(validators=[Optional()])
+    param3 = DecimalField(validators=[Optional()])
+    param4 = DecimalField(validators=[Optional()])
 
 class DistrFrom(FlaskForm):
+    # Only used as a superclass for PriorForm and LikelihoodForm below
     def validate(self):
         if not super(DistrFrom, self).validate():
             return False
@@ -38,6 +44,8 @@ class DistrFrom(FlaskForm):
             distribution_to_check = self.uniself
         if self.family.data == 'binomial':
             distribution_to_check = self.binomial
+        if self.family.data == 'diff_log_betas':
+            distribution_to_check = self.diff_log_betas
 
         if all(x is not None for x in [distribution_to_check.param1.data,distribution_to_check.param2.data]):
             return True
@@ -61,17 +69,24 @@ def label_form(form,i,family_list):
     if 'binomial' in family_list:
         form.binomial.param1.label = "successes \(s\)"
         form.binomial.param2.label = "failures \(f\)"
+
+    if 'diff_log_betas' in family_list:
+        form.diff_log_betas.param1.label = 'Numerator Beta, parameter \( a_1 \)'
+        form.diff_log_betas.param2.label = 'Numerator Beta, parameter \( b_1 \)'
+        form.diff_log_betas.param3.label = 'Denominator Beta, parameter \( a_2 \)'
+        form.diff_log_betas.param4.label = 'Denominator Beta, parameter \( b_2 \)'
     return form
 
 class PriorForm(DistrFrom):
-    family = SelectField(choices=[('normal','Normal'), ('lognormal','Lognormal'), ('beta','Beta'), ('uniform','Uniform')])
+    family = SelectField(choices=[('normal','Normal'), ('lognormal','Lognormal'), ('beta','Beta'), ('uniform','Uniform'),('diff_log_betas','log(Beta) - log(Beta)')])
     normal = FormField(TwoParamsForm)
     lognormal = FormField(TwoParamsForm)
     beta = FormField(TwoParamsForm)
     uniform = FormField(TwoParamsForm)
+    diff_log_betas = FormField(FourParamsForm)
     def __init__(self, *args, **kwargs):
         super(PriorForm, self).__init__(*args, **kwargs)
-        self = label_form(self,i=0,family_list=['normal','lognormal','beta','uniform'])
+        self = label_form(self,i=0,family_list=['normal','lognormal','beta','uniform','diff_log_betas'])
 
 
 
@@ -200,6 +215,24 @@ def parse_user_inputs(dictionary):
             trials = successes+failures
             binomial_pdf = lambda theta: stats.binom.pmf(successes,trials,theta)
             scipy_distribution_object = backend.CustomFromPDF(binomial_pdf,a=0,b=1)
+
+        if dictionary[p_or_l]['family'] == 'diff_log_betas':
+            a1 = dictionary[p_or_l]['diff_log_betas']['param1']
+            b1 = dictionary[p_or_l]['diff_log_betas']['param2']
+            a2 = dictionary[p_or_l]['diff_log_betas']['param3']
+            b2 = dictionary[p_or_l]['diff_log_betas']['param4']
+
+            n = int(10e3)
+            beta1 = stats.beta(a1, b1)
+            beta2 = stats.beta(a2, b2)
+
+            log_beta1_samples = np.log(beta1.rvs(n))
+            log_beta2_samples = np.log(beta2.rvs(n))
+            log_ratio_samples = log_beta1_samples - log_beta2_samples
+
+            kernel = stats.gaussian_kde(log_ratio_samples)
+
+            scipy_distribution_object = backend.CustomFromPDF(kernel)
 
         return scipy_distribution_object
 
