@@ -19,6 +19,8 @@
         binomial_pdf_eq
         %}
 
+<div class="flexbox">
+<div id="inputPane">
 {# Beginning of form #}
 <form method="POST">
 {####### PRIOR  #######}
@@ -107,16 +109,17 @@
 
 {####### SUBMIT BUTTON  #######}
 <div class="form_section"><input type="submit"></div>
+
 </form>
 
 <div id="example">
     {% set example_link = "/?data={%22prior%22:%20{%22family%22:%20%22lognormal%22,%20%22normal%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22lognormal%22:%20{%22param1%22:%201.0,%20%22param2%22:%200.5},%20%22beta%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22uniform%22:%20{%22param1%22:%20null,%20%22param2%22:%20null}},%20%22likelihood%22:%20{%22family%22:%20%22normal%22,%20%22normal%22:%20{%22param1%22:%2010.0,%20%22param2%22:%203.0},%20%22lognormal%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22beta%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22uniform%22:%20{%22param1%22:%20null,%20%22param2%22:%20null}},%20%22graphrange%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22custompercentiles%22:%20%22%22}" %}
     <a rel="nofollow" href={{ example_link }}>Click here</a> to see an example.
 </div>
-
-<div class="page_section">
-    {{graph|safe}}
 </div>
+
+<div id="resultsPane">
+{{graph|safe}}
 
 <div class="page_section">
 {% if check_on_background_task==1 %}
@@ -129,8 +132,10 @@
 {% if link_to_this %}
 <div> <a href="{{ link_to_this }}">Link to this page</a>.</div>
 {% endif %}
+</div>
+</div>
 
-<div class="page_section">
+<div id="inputExplainer" class="page_section">
 Define the prior and likelihood distributions above. More distribution types could be added if there is sufficient
 interest. One use case that may be of particular interest is updating a prior on a parameter B based on b, an estimate of B from a study. The
 likelihood distribution will typically be a normal distribution, centered around b with a standard deviation equal to the standard error of b.
