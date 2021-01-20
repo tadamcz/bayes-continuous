@@ -302,7 +302,11 @@ def plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=-50,x_to=50):
 
 def intelligently_set_graph_domain(prior,likelihood):
 	p = 0.1
-	prior_range = prior.ppf(p), prior.ppf(1-p)
+	try:
+		prior_range = np.quantile(prior.monte_carlo_samples,(p,1-p))
+	except AttributeError:
+		prior_range = prior.ppf(p), prior.ppf(1-p)
+
 	likelihood_range = likelihood.ppf(p), likelihood.ppf(1-p)
 
 	ranges = extremeties_intervals([prior_range,likelihood_range])

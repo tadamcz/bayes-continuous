@@ -249,6 +249,7 @@ def parse_user_inputs(dictionary):
             kernel = stats.gaussian_kde(log_ratio_samples)
 
             scipy_distribution_object = backend.CustomFromPDF(kernel)
+            scipy_distribution_object.monte_carlo_samples = log_ratio_samples
 
         return scipy_distribution_object
 
