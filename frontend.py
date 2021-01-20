@@ -40,8 +40,8 @@ class DistrFrom(FlaskForm):
             distribution_to_check = self.lognormal
         if self.family.data == 'beta':
             distribution_to_check = self.beta
-        if self.family.data == 'uniself':
-            distribution_to_check = self.uniself
+        if self.family.data == 'uniform':
+            distribution_to_check = self.uniform
         if self.family.data == 'binomial':
             distribution_to_check = self.binomial
         if self.family.data == 'diff_log_betas':
