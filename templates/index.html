@@ -9,7 +9,7 @@
 <h1>Bayesian update with continuous prior and likelihood</h1>
 
 {####### Imports  #######}
-{% from "_formhelpers.html" import render_field, render_field_nolabel %}
+{% from "_formhelpers.html" import render_field, render_field_nolabel, render_checkbox %}
 {% from "_latex_macros.html" import
         prior_density_eq,
         likelihood_density_eq,
@@ -78,7 +78,9 @@
 {{ form.likelihood.family.label }} {{ form.likelihood.family(onchange="display_fields_for_selected_family('likelihood')") }}
 
 <div id = "likelihood-normal-field">
+    {{ render_checkbox(form.likelihood.normal_95_ci_bool, onchange='displayNormalLikelihood95CI()') }}
     {{ render_field_nolabel(form.likelihood.normal) }}
+    {{ render_field_nolabel(form.likelihood.normal_95_ci) }}
     Likelihood function: $$ {{ likelihood_density_eq }} = {{ normal_pdf_eq(1) }} $$
 </div>
 
@@ -226,5 +228,19 @@ function display_fields_for_selected_family(prior_or_likelihood) {
 // run it once at the beginning
 display_fields_for_selected_family('prior')
 display_fields_for_selected_family('likelihood')
+
+function displayNormalLikelihood95CI(){
+    checked = document.getElementById('likelihood-normal_95_ci_bool').checked
+
+    if (checked){
+        document.getElementById('likelihood-normal_95_ci').style.display = 'block'
+        document.getElementById('likelihood-normal').style.display = 'none'
+    }
+    else {
+        document.getElementById('likelihood-normal_95_ci').style.display = 'none'
+        document.getElementById('likelihood-normal').style.display = 'block'
+    }
+}
+displayNormalLikelihood95CI()
 
 </script>

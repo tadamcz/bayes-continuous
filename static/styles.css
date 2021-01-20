@@ -17,3 +17,7 @@
 #inputPane, #inputExplainer {
     max-width: 35em;
 }
+
+#likelihood-normal_95_ci{
+    display: none;  /*    by default*/
+}

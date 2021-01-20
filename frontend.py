@@ -35,7 +35,13 @@ class DistrFrom(FlaskForm):
         if not super(DistrFrom, self).validate():
             return False
         if self.family.data == 'normal':
-            distribution_to_check = self.normal
+            try:
+                if self.normal_95_ci_bool.data:
+                    distribution_to_check = self.normal_95_ci
+                else:
+                    distribution_to_check = self.normal
+            except AttributeError:
+                distribution_to_check = self.normal
         if self.family.data == 'lognormal':
             distribution_to_check = self.lognormal
         if self.family.data == 'beta':
@@ -95,6 +101,8 @@ class LikelihoodForm(DistrFrom):
     family = SelectField(choices=[('normal','Normal'), ('lognormal','Lognormal'), ('beta','Beta'), ('uniform','Uniform'),
                                   ('binomial','Binomial (as a function of success probability)')])
     normal = FormField(TwoParamsForm)
+    normal_95_ci_bool = BooleanField("Use 95% interval mode?")
+    normal_95_ci = FormField(TwoParamsForm)
     lognormal = FormField(TwoParamsForm)
     beta = FormField(TwoParamsForm)
     uniform = FormField(TwoParamsForm)
@@ -103,6 +111,8 @@ class LikelihoodForm(DistrFrom):
     def __init__(self, *args, **kwargs):
         super(LikelihoodForm, self).__init__(*args, **kwargs)
         self = label_form(self,i=1,family_list=['normal','lognormal','beta','uniform','binomial'])
+        self.normal_95_ci.param1.label = '2.5%'
+        self.normal_95_ci.param2.label = '97.5%'
 
 
 
@@ -193,8 +203,14 @@ def parse_user_inputs(dictionary):
 
     def parse_prior_likelihood(dictionary, p_or_l):
         if dictionary[p_or_l]['family'] == 'normal':
-            scipy_distribution_object = stats.norm(loc=dictionary[p_or_l]['normal']['param1'],
-                                                   scale=dictionary[p_or_l]['normal']['param2'])
+            if p_or_l == 'likelihood' and dictionary['likelihood']['normal_95_ci_bool']:
+                x1, x2 = dictionary['likelihood']['normal_95_ci']['param1'],dictionary['likelihood']['normal_95_ci']['param2']
+                loc,scale = backend.normal_parameters(x1,2.5/100,x2,97.5/100)
+            else:
+                loc = dictionary[p_or_l]['normal']['param1']
+                scale = dictionary[p_or_l]['normal']['param2']
+
+            scipy_distribution_object = stats.norm(loc=loc, scale=scale)
 
         if dictionary[p_or_l]['family'] == 'lognormal':
             scipy_distribution_object = stats.lognorm(scale=math.exp(dictionary[p_or_l]['lognormal']['param1']),

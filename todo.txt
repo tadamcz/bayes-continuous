@@ -1,3 +1,2 @@
 * add quick links for "study mode" and "study risk ratio mode"
-* add 95% CI mode for normal likelihood distribution
 * notify user when there are conjugate priors
