@@ -174,12 +174,12 @@ def graph_out(user_inputs):
 	print(e - s, 'seconds to get posterior pdf')
 
 	# Plot
+	s = time.time()
 	if override_graph_range:
 		x_from, x_to = override_graph_range
 	else:
 		x_from, x_to = intelligently_set_graph_domain(prior, likelihood)
 
-	s = time.time()
 	plot = plot_pdfs_bayes_update(prior, likelihood, posterior, x_from=x_from, x_to=x_to)
 	plot = mpld3.fig_to_html(plot)
 	e = time.time()
