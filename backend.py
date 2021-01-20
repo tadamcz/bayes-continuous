@@ -114,7 +114,7 @@ class Posterior_scipyrv(stats.rv_continuous):
 		result = {}
 
 		start = time.time()
-		print('Running compute_percentiles_exact. Support: ', self.support())
+		# print('Running compute_percentiles_exact. Support: ', self.support())
 
 		percentiles_list.sort()
 		percentiles_reordered = sum(zip(percentiles_list,reversed(percentiles_list)), ())[:len(percentiles_list)] #https://stackoverflow.com/a/17436999/8010877
@@ -135,7 +135,7 @@ class Posterior_scipyrv(stats.rv_continuous):
 			return leftbound, rightbound
 
 		for p in percentiles_reordered:
-			print("trying to compute the", p, "th percentile")
+			# print("trying to compute the", p, "th percentile")
 			try:
 				leftbound , rightbound = get_bounds_on_ppf(result,p)
 				res = self.ppf_with_bounds(p,leftbound,rightbound)
@@ -168,13 +168,9 @@ def graph_out(user_inputs):
 	override_graph_range = user_inputs['override_graph_range']
 
 	# compute posterior pdf
-	s = time.time()
 	posterior = Posterior_scipyrv(prior, likelihood)
-	e = time.time()
-	print(e - s, 'seconds to get posterior pdf')
 
 	# Plot
-	s = time.time()
 	if override_graph_range:
 		x_from, x_to = override_graph_range
 	else:
@@ -182,8 +178,6 @@ def graph_out(user_inputs):
 
 	plot = plot_pdfs_bayes_update(prior, likelihood, posterior, x_from=x_from, x_to=x_to)
 	plot = mpld3.fig_to_html(plot)
-	e = time.time()
-	print(e - s, 'seconds to make plot')
 
 	# Expected value
 	ev = np.around(posterior.expect(), 2)

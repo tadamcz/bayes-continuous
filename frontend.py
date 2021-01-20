@@ -199,7 +199,7 @@ def parse_user_inputs(dictionary):
                 recursively_convert_Decimal_to_float(dictionary[key])
 
     recursively_convert_Decimal_to_float(dictionary)
-    print("User input:", json.dumps(dictionary, indent=4))
+    # print("User input:", json.dumps(dictionary, indent=4))
 
     def parse_prior_likelihood(dictionary, p_or_l):
         if dictionary[p_or_l]['family'] == 'normal':
