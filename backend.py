@@ -179,13 +179,10 @@ def graph_out(user_inputs):
 	plot = plot_pdfs_bayes_update(prior, likelihood, posterior, x_from=x_from, x_to=x_to)
 	plot = mpld3.fig_to_html(plot)
 
-	# Expected value
-	ev = np.around(posterior.expect(), 2)
-	ev_string = 'Posterior expected value: ' + str(ev) + '<br>'
 
-	return plot + ev_string
+	return plot
 
-def percentiles_out(user_inputs):
+def distribution_information_out(user_inputs):
 	# Parse inputs
 	prior = user_inputs['prior']
 	likelihood = user_inputs['likelihood']
@@ -193,8 +190,12 @@ def percentiles_out(user_inputs):
 	# compute posterior pdf
 	posterior = Posterior_scipyrv(prior, likelihood)
 
+	# expected value
+	ev = posterior.expect(epsrel=1/100)  # epsrel is the relative tolerance passed to the integration routine
+	ev_string = '<br>Expected value: ' + str(np.around(ev,2)) + '<br>'
+
 	# percentiles
-	percentiles_exact_string = ''
+	percentiles_exact_string = 'Percentiles:<br>'
 
 	if user_inputs['custom_percentiles']:
 		p = user_inputs['custom_percentiles']
@@ -202,10 +203,10 @@ def percentiles_out(user_inputs):
 		p = [0.1, 0.25, 0.5, 0.75, 0.9]
 	percentiles_exact = posterior.compute_percentiles(p)
 
-	percentiles_exact_string = percentiles_exact['runtime'] + '<br>'
 	for x in percentiles_exact['result']:
 		percentiles_exact_string += str(x) + ', ' + str(np.around(percentiles_exact['result'][x], 2)) + '<br>'
-	return percentiles_exact_string
+	percentiles_exact_string += percentiles_exact['runtime']
+	return ev_string+percentiles_exact_string
 
 def intersect_intervals(two_tuples):
 	interval1 , interval2 = two_tuples

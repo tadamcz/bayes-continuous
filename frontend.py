@@ -157,7 +157,7 @@ def index():
     if user_input_given and user_input_valid:
         graph = backend.graph_out(user_input_parsed)
         thread_id_exact = str(random.randint(0, 10000))
-        executor.submit_stored(thread_id_exact, backend.percentiles_out, user_input_parsed)
+        executor.submit_stored(thread_id_exact, backend.distribution_information_out, user_input_parsed)
 
         return render_template('index.html', form=form, graph=graph, thread_id_exact=thread_id_exact,
                                check_on_background_task=1, link_to_this=link_to_this_string)
