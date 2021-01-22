@@ -139,12 +139,22 @@
 </div>
 
 <div id="inputExplainer" class="page_section">
-Define the prior and likelihood distributions above. More distribution types could be added if there is sufficient
-interest. One use case that may be of particular interest is updating a prior on a parameter B based on b, an estimate of B from a study. The
-likelihood distribution will typically be a normal distribution, centered around b with a standard deviation equal to the standard error of b.
-If the parameter is a ratio, its error distribution converges to normality slowly but the error distribution of log(b) converges faster,
-and is often used. In this case, you could use a lognormal likelihood function, or take logs of both prior and likelihood to perform the update,
-and exponentiate the results back. <a href="https://repl.it/@tmkadamcz/conversions-for-hypothesis-tests#main.py">This tool</a> may be
+One use case that may be of particular interest is updating a prior on a parameter B based on b,
+    an a statistical estimate of B (for example from a study you conducted or are reading about).
+
+    <ul>
+        <li> If b is a <b>mean</b> or a difference in means (such as a <b>treatment effect</b>), the likelihood distribution will be a normal distribution
+                 centered around b with a standard deviation equal to the standard error of b. The log-normal distribution may be a good choice of prior for positive quantities.
+                <br><a href="javascript:quickLinkMean()">Quick link: <b>Update from statistical estimate of a mean or treatment effect</b></a>
+
+        <li style="margin-top: 1em"> If b is a ratio, its error distribution converges to normality slowly.
+                In the case of a <b>risk ratio</b>, both risks are positive, so the error distribution of log(b), which converges faster, is often used.
+                In this case, you can take logs of both prior and likelihood, so that the likelihood becomes a normal distribution. A good choice for the prior
+                over a risk ratio is a ratio of Beta distributions, whose log is a difference of logs of betas distributions.
+                <br><a href="javascript:quickLinkRiskRatioLog()">Quick link: <b>Update from statistical estimate of a risk ratio</b> (log space)</a>
+    </ul>
+
+<a href="https://repl.it/@tmkadamcz/conversions-for-hypothesis-tests#main.py">This tool</a> may be
 helpful for converting between 95% confidence intervals, standard errors, and p-values.
 </div>
 
@@ -243,5 +253,25 @@ function displayNormalLikelihood95CI(){
     }
 }
 displayNormalLikelihood95CI()
+
+function quickLinkMean(){
+    document.getElementById('prior-family').value = 'lognormal'
+    document.getElementById('likelihood-family').value = 'normal'
+    document.getElementById('likelihood-normal_95_ci_bool').checked = true
+
+    display_fields_for_selected_family('prior')
+    display_fields_for_selected_family('likelihood')
+    displayNormalLikelihood95CI()
+}
+
+function quickLinkRiskRatioLog(){
+    document.getElementById('prior-family').value = 'diff_log_betas'
+    document.getElementById('likelihood-family').value = 'normal'
+    document.getElementById('likelihood-normal_95_ci_bool').checked = true
+
+    display_fields_for_selected_family('prior')
+    display_fields_for_selected_family('likelihood')
+    displayNormalLikelihood95CI()
+}
 
 </script>
