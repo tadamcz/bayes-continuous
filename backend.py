@@ -9,7 +9,7 @@ import decimal
 import json
 import mpld3
 
-class Posterior_scipyrv(stats.rv_continuous):
+class Posterior_scipyrv(stats.rv_continuous): # todo docstrings
 	def __init__(self, distribution1, distribution2):
 		super(Posterior_scipyrv, self).__init__()
 
@@ -188,14 +188,14 @@ def distribution_information_out(user_inputs):
 	likelihood = user_inputs['likelihood']
 
 	# compute posterior pdf
-	posterior = Posterior_scipyrv(prior, likelihood)
+	posterior = Posterior_scipyrv(prior, likelihood)  # todo refactor this into proper object oriented programming
 
 	# expected value
 	ev = posterior.expect(epsrel=1/100)  # epsrel is the relative tolerance passed to the integration routine
 	ev_string = '<br>Expected value: ' + str(np.around(ev,2)) + '<br>'
 
 	# percentiles
-	percentiles_exact_string = 'Percentiles:<br>'
+	percentiles_exact_string = 'Percentiles:<br>' # todo use a list instead of line breaks
 
 	if user_inputs['custom_percentiles']:
 		p = user_inputs['custom_percentiles']

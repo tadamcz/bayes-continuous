@@ -238,7 +238,7 @@ def parse_user_inputs(dictionary):
             a2 = dictionary[p_or_l]['diff_log_betas']['param3']
             b2 = dictionary[p_or_l]['diff_log_betas']['param4']
 
-            n = int(10e3)
+            n = int(10e3) # todo move the KDE to backend, into a new class DiffLogBetasDistribution
             beta1 = stats.beta(a1, b1)
             beta2 = stats.beta(a2, b2)
 
@@ -276,4 +276,4 @@ def parse_user_inputs(dictionary):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()

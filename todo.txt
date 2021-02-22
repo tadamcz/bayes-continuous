@@ -1,2 +1,8 @@
-* add quick links for "study mode" and "study risk ratio mode"
+* add ratio of Betas to options for priors, and add quick link for Risk Ratio (not in log space)
+* write blog post about how to update from a study
+* call out makedistribution.com for those who want to create more complicated distributions.
+* remove url params (until I find the time to make them not suck)
+* add quick links for
+    - "Update from statistical estimate of a mean or treatment effect"
+    - "Update from statistical estimate of a risk ratio"
 * notify user when there are conjugate priors
