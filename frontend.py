@@ -238,18 +238,7 @@ def parse_user_inputs(dictionary):
             a2 = dictionary[p_or_l]['diff_log_betas']['param3']
             b2 = dictionary[p_or_l]['diff_log_betas']['param4']
 
-            n = int(10e3) # todo move the KDE to backend, into a new class DiffLogBetasDistribution
-            beta1 = stats.beta(a1, b1)
-            beta2 = stats.beta(a2, b2)
-
-            log_beta1_samples = np.log(beta1.rvs(n))
-            log_beta2_samples = np.log(beta2.rvs(n))
-            log_ratio_samples = log_beta1_samples - log_beta2_samples
-
-            kernel = stats.gaussian_kde(log_ratio_samples)
-
-            scipy_distribution_object = backend.CustomFromPDF(kernel)
-            scipy_distribution_object.monte_carlo_samples = log_ratio_samples
+            scipy_distribution_object = backend.DiffLogBetas(a1, b1, a2, b2)
 
         return scipy_distribution_object
 

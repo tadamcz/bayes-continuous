@@ -316,10 +316,29 @@ def intelligently_set_graph_domain(prior,likelihood):
 
 	return domain
 
-
 def normal_parameters(x1, p1, x2, p2):
 	"Find parameters for a normal random variable X so that P(X < x1) = p1 and P(X < x2) = p2."
 	denom = stats.norm.ppf(p2) - stats.norm.ppf(p1)
 	sigma = (x2 - x1) / denom
 	mu = (x1*stats.norm.ppf(p2) - x2*stats.norm.ppf(p1)) / denom
 	return (mu, sigma)
+
+class DiffLogBetas(stats.rv_continuous):
+	def __init__(self, a1, b1, a2, b2):
+		super().__init__()
+		self.a = -np.inf
+		self.b = np.inf
+
+		n = int(10e3)
+		beta1 = stats.beta(a1, b1)
+		beta2 = stats.beta(a2, b2)
+
+		log_beta1_samples = np.log(beta1.rvs(n))
+		log_beta2_samples = np.log(beta2.rvs(n))
+		self.log_ratio_samples = log_beta1_samples - log_beta2_samples
+		self.monte_carlo_samples = self.log_ratio_samples
+
+		self.kernel = stats.gaussian_kde(self.log_ratio_samples)
+
+	def _pdf(self, x):
+		return self.kernel(x)
