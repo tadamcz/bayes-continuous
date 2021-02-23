@@ -52,6 +52,8 @@ class DistrFrom(FlaskForm):
             distribution_to_check = self.binomial
         if self.family.data == 'diff_log_betas':
             distribution_to_check = self.diff_log_betas
+        if self.family.data == 'ratio_betas':
+            distribution_to_check = self.ratio_betas
 
         if all(x is not None for x in [distribution_to_check.param1.data,distribution_to_check.param2.data]):
             return True
@@ -81,18 +83,25 @@ def label_form(form,i,family_list):
         form.diff_log_betas.param2.label = 'Numerator Beta, parameter \( b_1 \)'
         form.diff_log_betas.param3.label = 'Denominator Beta, parameter \( a_2 \)'
         form.diff_log_betas.param4.label = 'Denominator Beta, parameter \( b_2 \)'
+
+    if 'ratio_betas' in family_list:
+        form.ratio_betas.param1.label = 'Numerator Beta, parameter \( a_1 \)'
+        form.ratio_betas.param2.label = 'Numerator Beta, parameter \( b_1 \)'
+        form.ratio_betas.param3.label = 'Denominator Beta, parameter \( a_2 \)'
+        form.ratio_betas.param4.label = 'Denominator Beta, parameter \( b_2 \)'
     return form
 
 class PriorForm(DistrFrom):
-    family = SelectField(choices=[('normal','Normal'), ('lognormal','Lognormal'), ('beta','Beta'), ('uniform','Uniform'),('diff_log_betas','log(Beta) - log(Beta)')])
+    family = SelectField(choices=[('normal','Normal'), ('lognormal','Lognormal'), ('beta','Beta'), ('uniform','Uniform'),('diff_log_betas','log(Beta) - log(Beta)'),('ratio_betas','Beta/Beta')])
     normal = FormField(TwoParamsForm)
     lognormal = FormField(TwoParamsForm)
     beta = FormField(TwoParamsForm)
     uniform = FormField(TwoParamsForm)
     diff_log_betas = FormField(FourParamsForm)
+    ratio_betas = FormField(FourParamsForm)
     def __init__(self, *args, **kwargs):
         super(PriorForm, self).__init__(*args, **kwargs)
-        self = label_form(self,i=0,family_list=['normal','lognormal','beta','uniform','diff_log_betas'])
+        self = label_form(self,i=0,family_list=['normal','lognormal','beta','uniform','diff_log_betas', 'ratio_betas'])
 
 
 
@@ -104,6 +113,8 @@ class LikelihoodForm(DistrFrom):
     normal_95_ci_bool = BooleanField("Use 95% interval mode?")
     normal_95_ci = FormField(TwoParamsForm)
     lognormal = FormField(TwoParamsForm)
+    lognormal_95_ci_bool = BooleanField("Use 95% interval mode?")
+    lognormal_95_ci = FormField(TwoParamsForm)
     beta = FormField(TwoParamsForm)
     uniform = FormField(TwoParamsForm)
     binomial = FormField(TwoParamsForm)
@@ -113,6 +124,8 @@ class LikelihoodForm(DistrFrom):
         self = label_form(self,i=1,family_list=['normal','lognormal','beta','uniform','binomial'])
         self.normal_95_ci.param1.label = '2.5%'
         self.normal_95_ci.param2.label = '97.5%'
+        self.lognormal_95_ci.param1.label = '2.5%'
+        self.lognormal_95_ci.param2.label = '97.5%'
 
 
 
@@ -213,8 +226,15 @@ def parse_user_inputs(dictionary):
             scipy_distribution_object = stats.norm(loc=loc, scale=scale)
 
         if dictionary[p_or_l]['family'] == 'lognormal':
-            scipy_distribution_object = stats.lognorm(scale=math.exp(dictionary[p_or_l]['lognormal']['param1']),
-                                                      s=dictionary[p_or_l]['lognormal']['param2'])
+            if p_or_l == 'likelihood' and dictionary['likelihood']['lognormal_95_ci_bool']:
+                x1, x2 = dictionary['likelihood']['lognormal_95_ci']['param1'],dictionary['likelihood']['lognormal_95_ci']['param2']
+                x1, x2 = np.log(x1), np.log(x2)
+                mu, sigma = backend.normal_parameters(x1,2.5/100,x2,97.5/100)
+            else:
+                mu = dictionary[p_or_l]['lognormal']['param1']
+                sigma = dictionary[p_or_l]['lognormal']['param2']
+
+            scipy_distribution_object = stats.lognorm(scale=np.exp(mu), s=sigma)
 
         if dictionary[p_or_l]['family'] == 'beta':
             scipy_distribution_object = stats.beta(dictionary[p_or_l]['beta']['param1'],
@@ -239,6 +259,19 @@ def parse_user_inputs(dictionary):
             b2 = dictionary[p_or_l]['diff_log_betas']['param4']
 
             scipy_distribution_object = backend.DiffLogBetas(a1, b1, a2, b2)
+
+        if dictionary[p_or_l]['family'] == 'ratio_betas':
+            a1 = dictionary[p_or_l]['ratio_betas']['param1']
+            b1 = dictionary[p_or_l]['ratio_betas']['param2']
+            a2 = dictionary[p_or_l]['ratio_betas']['param3']
+            b2 = dictionary[p_or_l]['ratio_betas']['param4']
+
+            scipy_distribution_object = backend.RatioBetas(a1, b1, a2, b2)
+
+        if dictionary[p_or_l]['family'] == 'ratio_betas':
+            scipy_distribution_object.use_log_transform = True
+        else:
+            scipy_distribution_object.use_log_transform = False
 
         return scipy_distribution_object
 

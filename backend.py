@@ -329,7 +329,7 @@ class DiffLogBetas(stats.rv_continuous):
 		self.a = -np.inf
 		self.b = np.inf
 
-		n = int(10e3)
+		n = int(1e4)
 		beta1 = stats.beta(a1, b1)
 		beta2 = stats.beta(a2, b2)
 
@@ -342,3 +342,46 @@ class DiffLogBetas(stats.rv_continuous):
 
 	def _pdf(self, x):
 		return self.kernel(x)
+
+class RatioBetas(stats.rv_continuous):
+	def __init__(self, a1, b1, a2, b2):
+		super().__init__()
+		self.a = 0
+		self.b = np.inf
+
+		n = int(1e4)
+		beta1 = stats.beta(a1, b1)
+		beta2 = stats.beta(a2, b2)
+
+		beta1_samples = beta1.rvs(n)
+		beta2_samples = beta2.rvs(n)
+		self.ratio_samples = beta1_samples/beta2_samples
+		self.monte_carlo_samples = self.ratio_samples
+
+		# Ironically, we actually do a log-transform here, because afaik `gaussian_kde` expects an unbounded distribution.
+		log_ratio_samples = np.log(beta1_samples)-np.log(beta2_samples)
+		self.kernel_of_log = stats.gaussian_kde(log_ratio_samples)
+
+	def _pdf(self, x):
+		"""
+		Use the chain rule
+		"""
+		return self.kernel_of_log(np.log(x))*1/x
+
+class LogTransformedDistr(stats.rv_continuous):
+	def __init__(self, original_distribution):
+		super().__init__()
+
+		self.original_distribution = original_distribution
+
+		self.a = np.exp(original_distribution.a)
+		self.b = np.exp(original_distribution.b)
+
+	def _pdf(self, x):
+		return self.original_distribution.pdf(np.exp(x))
+
+	def _cdf(self, x):
+		return self.original_distribution.pdf(np.exp(x))
+
+	def _ppf(self, p):
+		return np.log(self.original_distribution.ppf(p))

@@ -67,6 +67,15 @@
         other distribution families (Monte Carlo simulation is the fastest method I know of).</p>
 </div>
 
+<div id = "prior-ratio_betas-field">
+{{ render_field_nolabel(form.prior.ratio_betas) }}
+<p>The distribution of the ratio of two beta distributions. Useful for a prior over a risk ratio.</p>
+<p>The distribution is calculated using Monte Carlo simulation (with 10,000 samples) and kernel
+density estimation. This is a slight approximation, which becomes bigger as you go out towards
+    the tails of the distribution. It's also a little bit slower than
+    other distribution families (Monte Carlo simulation is the fastest method I know of).</p>
+</div>
+
 </div>
 
 {####### LIKELIHOOD  #######}
@@ -86,7 +95,11 @@
 </div>
 
 <div id = "likelihood-lognormal-field">
+    {#    Warning: $$\mu_1$$ and $$\sigma_1$$ are <i>not</i> the mean and standard deviation of the distribution. See <a href="https://en.wikipedia.org/wiki/Log-normal_distribution">Wikipedia</a>.#}
+
+    {{ render_checkbox(form.likelihood.lognormal_95_ci_bool, onchange='displayLogNormalLikelihood95CI()') }}
     {{ render_field_nolabel(form.likelihood.lognormal) }}
+    {{ render_field_nolabel(form.likelihood.lognormal_95_ci) }}
     Likelihood function: $$ {{likelihood_density_eq}} = {{ lognormal_pdf_eq(1) }} $$
 </div>
 
@@ -228,6 +241,7 @@ function display_fields_for_selected_family(prior_or_likelihood) {
   }
   if (prior_or_likelihood === 'prior') {
       document.getElementById(prior_or_likelihood + "-diff_log_betas-field").style.display = "none";
+      document.getElementById(prior_or_likelihood + "-ratio_betas-field").style.display = "none";
   }
 
   // Display the selected field
@@ -253,6 +267,20 @@ function displayNormalLikelihood95CI(){
     }
 }
 displayNormalLikelihood95CI()
+
+function displayLogNormalLikelihood95CI(){
+    checked = document.getElementById('likelihood-lognormal_95_ci_bool').checked
+
+    if (checked){
+        document.getElementById('likelihood-lognormal_95_ci').style.display = 'block'
+        document.getElementById('likelihood-lognormal').style.display = 'none'
+    }
+    else {
+        document.getElementById('likelihood-lognormal_95_ci').style.display = 'none'
+        document.getElementById('likelihood-lognormal').style.display = 'block'
+    }
+}
+displayLogNormalLikelihood95CI()
 
 function quickLinkMean(){
     document.getElementById('prior-family').value = 'lognormal'
