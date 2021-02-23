@@ -9,12 +9,13 @@ import decimal
 import json
 import mpld3
 
-class Posterior_scipyrv(stats.rv_continuous): # todo docstrings
-	def __init__(self, distribution1, distribution2):
-		super(Posterior_scipyrv, self).__init__()
+class Posterior(stats.rv_continuous): # todo docstrings
+	def __init__(self, distribution1, distribution2, user_inputs):
+		super(Posterior, self).__init__()
 
 		self.distribution1= distribution1
 		self.distribution2= distribution2
+		self.user_inputs = user_inputs
 
 		self.cdf_lookup = {} # Lookup table to increase speed
 
@@ -150,6 +151,40 @@ class Posterior_scipyrv(stats.rv_continuous): # todo docstrings
 
 		return {'result': sorted_result, 'runtime': description_string}
 
+	def graph_out(self):
+		plt.rcParams.update({'font.size': 16})
+		override_graph_range = self.user_inputs['override_graph_range']
+
+		# Plot
+		if override_graph_range:
+			x_from, x_to = override_graph_range
+		else:
+			x_from, x_to = intelligently_set_graph_domain(self.distribution1, self.distribution2)
+
+		plot = plot_pdfs_bayes_update(self.distribution1, self.distribution2, self, x_from=x_from, x_to=x_to)
+		plot = mpld3.fig_to_html(plot)
+
+		return plot
+
+	def distribution_information_out(self):
+		# expected value
+		ev = self.expect(epsrel=1 / 100)  # epsrel is the relative tolerance passed to the integration routine
+		ev_string = '<br>Expected value: ' + str(np.around(ev, 2)) + '<br>'
+
+		# percentiles
+		percentiles_exact_string = 'Percentiles:<br>'  # todo use a list instead of line breaks
+
+		if self.user_inputs['custom_percentiles']:
+			p = self.user_inputs['custom_percentiles']
+		else:
+			p = [0.1, 0.25, 0.5, 0.75, 0.9]
+		percentiles_exact = self.compute_percentiles(p)
+
+		for x in percentiles_exact['result']:
+			percentiles_exact_string += str(x) + ', ' + str(np.around(percentiles_exact['result'][x], 2)) + '<br>'
+		percentiles_exact_string += percentiles_exact['runtime']
+		return ev_string + percentiles_exact_string
+
 class CustomFromPDF(stats.rv_continuous):
 	def __init__(self, pdf_callable,a=-np.inf,b=np.inf):
 		super(CustomFromPDF, self).__init__()
@@ -159,54 +194,6 @@ class CustomFromPDF(stats.rv_continuous):
 
 	def _pdf(self,x):
 		return self.pdf_callable(x)
-
-def graph_out(user_inputs):
-	plt.rcParams.update({'font.size': 16})
-	# parse inputs
-	prior = user_inputs['prior']
-	likelihood = user_inputs['likelihood']
-	override_graph_range = user_inputs['override_graph_range']
-
-	# compute posterior pdf
-	posterior = Posterior_scipyrv(prior, likelihood)
-
-	# Plot
-	if override_graph_range:
-		x_from, x_to = override_graph_range
-	else:
-		x_from, x_to = intelligently_set_graph_domain(prior, likelihood)
-
-	plot = plot_pdfs_bayes_update(prior, likelihood, posterior, x_from=x_from, x_to=x_to)
-	plot = mpld3.fig_to_html(plot)
-
-
-	return plot
-
-def distribution_information_out(user_inputs):
-	# Parse inputs
-	prior = user_inputs['prior']
-	likelihood = user_inputs['likelihood']
-
-	# compute posterior pdf
-	posterior = Posterior_scipyrv(prior, likelihood)  # todo refactor this into proper object oriented programming
-
-	# expected value
-	ev = posterior.expect(epsrel=1/100)  # epsrel is the relative tolerance passed to the integration routine
-	ev_string = '<br>Expected value: ' + str(np.around(ev,2)) + '<br>'
-
-	# percentiles
-	percentiles_exact_string = 'Percentiles:<br>' # todo use a list instead of line breaks
-
-	if user_inputs['custom_percentiles']:
-		p = user_inputs['custom_percentiles']
-	else:
-		p = [0.1, 0.25, 0.5, 0.75, 0.9]
-	percentiles_exact = posterior.compute_percentiles(p)
-
-	for x in percentiles_exact['result']:
-		percentiles_exact_string += str(x) + ', ' + str(np.around(percentiles_exact['result'][x], 2)) + '<br>'
-	percentiles_exact_string += percentiles_exact['runtime']
-	return ev_string+percentiles_exact_string
 
 def intersect_intervals(two_tuples):
 	interval1 , interval2 = two_tuples

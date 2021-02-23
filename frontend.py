@@ -168,9 +168,10 @@ def index():
             user_input_valid = True
 
     if user_input_given and user_input_valid:
-        graph = backend.graph_out(user_input_parsed)
+        posterior = backend.Posterior(user_input_parsed['prior'],user_input_parsed['likelihood'],user_input_parsed)
+        graph = posterior.graph_out()
         thread_id_exact = str(random.randint(0, 10000))
-        executor.submit_stored(thread_id_exact, backend.distribution_information_out, user_input_parsed)
+        executor.submit_stored(thread_id_exact, posterior.distribution_information_out)
 
         return render_template('index.html', form=form, graph=graph, thread_id_exact=thread_id_exact,
                                check_on_background_task=1, link_to_this=link_to_this_string)
