@@ -43,7 +43,13 @@ class DistrFrom(FlaskForm):
             except AttributeError:
                 distribution_to_check = self.normal
         if self.family.data == 'lognormal':
-            distribution_to_check = self.lognormal
+            try:
+                if self.lognormal_95_ci_bool.data:
+                    distribution_to_check = self.lognormal_95_ci
+                else:
+                    distribution_to_check = self.lognormal
+            except AttributeError:
+                distribution_to_check = self.lognormal
         if self.family.data == 'beta':
             distribution_to_check = self.beta
         if self.family.data == 'uniform':
