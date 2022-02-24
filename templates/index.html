@@ -1,15 +1,15 @@
 <head>
+    {% include "_google_analytics.html" %}
     <meta charset="UTF-8">
-    <title>Bayesian update with continuous prior and likelihood<</title>
+    <title>Bayesian update with continuous prior and likelihood</title>
     <link rel="stylesheet" href= {{url_for('static', filename='/styles.css') }}>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    {% include "_google_analytics.html" %}
 </head>
 
 <h1>Bayesian update with continuous prior and likelihood</h1>
 
 {####### Imports  #######}
-{% from "_formhelpers.html" import render_field, render_field_nolabel %}
+{% from "_formhelpers.html" import render_field, render_field_nolabel, render_checkbox %}
 {% from "_latex_macros.html" import
         prior_density_eq,
         likelihood_density_eq,
@@ -19,6 +19,8 @@
         binomial_pdf_eq
         %}
 
+<div class="flexbox">
+<div id="inputPane">
 {# Beginning of form #}
 <form method="POST">
 {####### PRIOR  #######}
@@ -50,6 +52,30 @@
 </div>
 
 <div id = "prior-uniform-field"> {{ render_field_nolabel(form.prior.uniform) }}  </div>
+
+
+<div id = "prior-diff_log_betas-field">
+    {{ render_field_nolabel(form.prior.diff_log_betas) }}
+    <p>The distribution of log(R) where R is the ratio of a Beta distribution
+    on the numerator and another Beta distribution on the denominator. Useful when R is
+    a risk ratio, and a point estimate and standard error for the <i>log risk ratio</i> is provided
+        by the study.</p>
+
+    <p>The distribution is calculated using Monte Carlo simulation (with 10,000 samples) and kernel
+    density estimation. This is a slight approximation, which becomes bigger as you go out towards
+        the tails of the distribution. It's also a little bit slower than
+        other distribution families (Monte Carlo simulation is the fastest method I know of).</p>
+</div>
+
+<div id = "prior-ratio_betas-field">
+{{ render_field_nolabel(form.prior.ratio_betas) }}
+<p>The distribution of the ratio of two beta distributions. Useful for a prior over a risk ratio.</p>
+<p>The distribution is calculated using Monte Carlo simulation (with 10,000 samples) and kernel
+density estimation. This is a slight approximation, which becomes bigger as you go out towards
+    the tails of the distribution. It's also a little bit slower than
+    other distribution families (Monte Carlo simulation is the fastest method I know of).</p>
+</div>
+
 </div>
 
 {####### LIKELIHOOD  #######}
@@ -62,12 +88,18 @@
 {{ form.likelihood.family.label }} {{ form.likelihood.family(onchange="display_fields_for_selected_family('likelihood')") }}
 
 <div id = "likelihood-normal-field">
+    {{ render_checkbox(form.likelihood.normal_95_ci_bool, onchange='displayNormalLikelihood95CI()') }}
     {{ render_field_nolabel(form.likelihood.normal) }}
+    {{ render_field_nolabel(form.likelihood.normal_95_ci) }}
     Likelihood function: $$ {{ likelihood_density_eq }} = {{ normal_pdf_eq(1) }} $$
 </div>
 
 <div id = "likelihood-lognormal-field">
+    {#    Warning: $$\mu_1$$ and $$\sigma_1$$ are <i>not</i> the mean and standard deviation of the distribution. See <a href="https://en.wikipedia.org/wiki/Log-normal_distribution">Wikipedia</a>.#}
+
+    {{ render_checkbox(form.likelihood.lognormal_95_ci_bool, onchange='displayLogNormalLikelihood95CI()') }}
     {{ render_field_nolabel(form.likelihood.lognormal) }}
+    {{ render_field_nolabel(form.likelihood.lognormal_95_ci) }}
     Likelihood function: $$ {{likelihood_density_eq}} = {{ lognormal_pdf_eq(1) }} $$
 </div>
 
@@ -93,16 +125,17 @@
 
 {####### SUBMIT BUTTON  #######}
 <div class="form_section"><input type="submit"></div>
+
 </form>
 
 <div id="example">
-    {% set example_link = "/?data={%22prior%22:%20{%22family%22:%20%22lognormal%22,%20%22normal%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22lognormal%22:%20{%22param1%22:%201.0,%20%22param2%22:%200.5},%20%22beta%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22uniform%22:%20{%22param1%22:%20null,%20%22param2%22:%20null}},%20%22likelihood%22:%20{%22family%22:%20%22normal%22,%20%22normal%22:%20{%22param1%22:%2010.0,%20%22param2%22:%203.0},%20%22lognormal%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22beta%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22uniform%22:%20{%22param1%22:%20null,%20%22param2%22:%20null}},%20%22graphrange%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22custompercentiles%22:%20%22%22}" %}
+    {% set example_link = "/?data={%22prior%22:%20{%22family%22:%20%22lognormal%22,%20%22normal%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22lognormal%22:%20{%22param1%22:%201.0,%20%22param2%22:%200.5},%20%22beta%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22uniform%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22diff_log_betas%22:%20{%22param1%22:%20null,%20%22param2%22:%20null,%20%22param3%22:%20null,%20%22param4%22:%20null}},%20%22likelihood%22:%20{%22family%22:%20%22normal%22,%20%22normal%22:%20{%22param1%22:%2010.0,%20%22param2%22:%203.0},%20%22normal_95_ci_bool%22:%20false,%20%22normal_95_ci%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22lognormal%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22beta%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22uniform%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22binomial%22:%20{%22param1%22:%20null,%20%22param2%22:%20null}},%20%22graphrange%22:%20{%22param1%22:%20null,%20%22param2%22:%20null},%20%22custompercentiles%22:%20%22%22}" %}
     <a rel="nofollow" href={{ example_link }}>Click here</a> to see an example.
 </div>
-
-<div class="page_section">
-    {{graph|safe}}
 </div>
+
+<div id="resultsPane">
+{{graph|safe}}
 
 <div class="page_section">
 {% if check_on_background_task==1 %}
@@ -115,14 +148,26 @@
 {% if link_to_this %}
 <div> <a href="{{ link_to_this }}">Link to this page</a>.</div>
 {% endif %}
+</div>
+</div>
 
-<div class="page_section">
-Define the prior and likelihood distributions above. More distribution types could be added if there is sufficient
-interest. One use case that may be of particular interest is updating a prior on a parameter B based on b, an estimate of B from a study. The
-likelihood distribution will typically be a normal distribution, centered around b with a standard deviation equal to the standard error of b.
-If the parameter is a ratio, its error distribution converges to normality slowly but the error distribution of log(b) converges faster,
-and is often used. In this case, you could use a lognormal likelihood function, or take logs of both prior and likelihood to perform the update,
-and exponentiate the results back. <a href="https://repl.it/@tmkadamcz/conversions-for-hypothesis-tests#main.py">This tool</a> may be
+<div id="inputExplainer" class="page_section">
+One use case that may be of particular interest is updating a prior on a parameter B based on b,
+    an a statistical estimate of B (for example from a study you conducted or are reading about).
+
+    <ul>
+        <li> If b is a <b>mean</b> or a difference in means (such as a <b>treatment effect</b>), the likelihood distribution will be a normal distribution
+                 centered around b with a standard deviation equal to the standard error of b. The log-normal distribution may be a good choice of prior for positive quantities.
+                <br><a href="javascript:quickLinkMean()">Quick link: <b>Update from statistical estimate of a mean or treatment effect</b></a>
+
+        <li style="margin-top: 1em"> If b is a ratio, its error distribution converges to normality slowly.
+                In the case of a <b>risk ratio</b>, both risks are positive, so the error distribution of log(b), which converges faster, is often used.
+                In this case, you can take logs of both prior and likelihood, so that the likelihood becomes a normal distribution. A good choice for the prior
+                over a risk ratio is a ratio of Beta distributions, whose log is a difference of logs of betas distributions.
+                <br><a href="javascript:quickLinkRiskRatioLog()">Quick link: <b>Update from statistical estimate of a risk ratio</b> (log space)</a>
+    </ul>
+
+<a href="https://repl.it/@tmkadamcz/conversions-for-hypothesis-tests#main.py">This tool</a> may be
 helpful for converting between 95% confidence intervals, standard errors, and p-values.
 </div>
 
@@ -131,6 +176,7 @@ helpful for converting between 95% confidence intervals, standard errors, and p-
     <div style="max-width: 40em">
         {% include "_feedback-form.html" %}
     </div>
+</div>
 <script>
 
 
@@ -177,7 +223,7 @@ check_on_background_task( {{thread_id_exact}},'exact');
 }
 
 if ({{check_on_background_task}}==1) {
-document.getElementById("percentiles_exact_message").innerHTML = "Percentiles of posterior distribution:";
+document.getElementById("percentiles_exact_message").innerHTML = "Posterior distribution information:";
 }
 
 
@@ -193,34 +239,67 @@ function display_fields_for_selected_family(prior_or_likelihood) {
   if (prior_or_likelihood === 'likelihood') {
       document.getElementById(prior_or_likelihood + "-binomial-field").style.display = "none";
   }
-
-
-
-  // then display the selected field
-  if (x == "normal") {
-  document.getElementById(prior_or_likelihood+"-normal-field").style.display = "block";
+  if (prior_or_likelihood === 'prior') {
+      document.getElementById(prior_or_likelihood + "-diff_log_betas-field").style.display = "none";
+      document.getElementById(prior_or_likelihood + "-ratio_betas-field").style.display = "none";
   }
 
-  if (x == "lognormal") {
-  document.getElementById(prior_or_likelihood+"-lognormal-field").style.display = "block";
-  }
+  // Display the selected field
+  document.getElementById(prior_or_likelihood+"-"+x+"-field").style.display = "block";
 
-  if (x == "beta") {
-  document.getElementById(prior_or_likelihood+"-beta-field").style.display = "block";
-  }
-
-  if (x == "uniform") {
-  document.getElementById(prior_or_likelihood+"-uniform-field").style.display = "block";
-  }
-
-  if (x == "binomial") {
-  document.getElementById(prior_or_likelihood+"-binomial-field").style.display = "block";
-  }
 }
 
 
 // run it once at the beginning
 display_fields_for_selected_family('prior')
 display_fields_for_selected_family('likelihood')
+
+function displayNormalLikelihood95CI(){
+    checked = document.getElementById('likelihood-normal_95_ci_bool').checked
+
+    if (checked){
+        document.getElementById('likelihood-normal_95_ci').style.display = 'block'
+        document.getElementById('likelihood-normal').style.display = 'none'
+    }
+    else {
+        document.getElementById('likelihood-normal_95_ci').style.display = 'none'
+        document.getElementById('likelihood-normal').style.display = 'block'
+    }
+}
+displayNormalLikelihood95CI()
+
+function displayLogNormalLikelihood95CI(){
+    checked = document.getElementById('likelihood-lognormal_95_ci_bool').checked
+
+    if (checked){
+        document.getElementById('likelihood-lognormal_95_ci').style.display = 'block'
+        document.getElementById('likelihood-lognormal').style.display = 'none'
+    }
+    else {
+        document.getElementById('likelihood-lognormal_95_ci').style.display = 'none'
+        document.getElementById('likelihood-lognormal').style.display = 'block'
+    }
+}
+displayLogNormalLikelihood95CI()
+
+function quickLinkMean(){
+    document.getElementById('prior-family').value = 'lognormal'
+    document.getElementById('likelihood-family').value = 'normal'
+    document.getElementById('likelihood-normal_95_ci_bool').checked = true
+
+    display_fields_for_selected_family('prior')
+    display_fields_for_selected_family('likelihood')
+    displayNormalLikelihood95CI()
+}
+
+function quickLinkRiskRatioLog(){
+    document.getElementById('prior-family').value = 'diff_log_betas'
+    document.getElementById('likelihood-family').value = 'normal'
+    document.getElementById('likelihood-normal_95_ci_bool').checked = true
+
+    display_fields_for_selected_family('prior')
+    display_fields_for_selected_family('likelihood')
+    displayNormalLikelihood95CI()
+}
 
 </script>

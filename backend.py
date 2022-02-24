@@ -9,12 +9,13 @@ import decimal
 import json
 import mpld3
 
-class Posterior_scipyrv(stats.rv_continuous):
-	def __init__(self, distribution1, distribution2):
-		super(Posterior_scipyrv, self).__init__()
+class Posterior(stats.rv_continuous): # todo docstrings
+	def __init__(self, distribution1, distribution2, user_inputs):
+		super(Posterior, self).__init__()
 
 		self.distribution1= distribution1
 		self.distribution2= distribution2
+		self.user_inputs = user_inputs
 
 		self.cdf_lookup = {} # Lookup table to increase speed
 
@@ -114,7 +115,7 @@ class Posterior_scipyrv(stats.rv_continuous):
 		result = {}
 
 		start = time.time()
-		print('Running compute_percentiles_exact. Support: ', self.support())
+		# print('Running compute_percentiles_exact. Support: ', self.support())
 
 		percentiles_list.sort()
 		percentiles_reordered = sum(zip(percentiles_list,reversed(percentiles_list)), ())[:len(percentiles_list)] #https://stackoverflow.com/a/17436999/8010877
@@ -135,7 +136,7 @@ class Posterior_scipyrv(stats.rv_continuous):
 			return leftbound, rightbound
 
 		for p in percentiles_reordered:
-			print("trying to compute the", p, "th percentile")
+			# print("trying to compute the", p, "th percentile")
 			try:
 				leftbound , rightbound = get_bounds_on_ppf(result,p)
 				res = self.ppf_with_bounds(p,leftbound,rightbound)
@@ -150,6 +151,40 @@ class Posterior_scipyrv(stats.rv_continuous):
 
 		return {'result': sorted_result, 'runtime': description_string}
 
+	def graph_out(self):
+		plt.rcParams.update({'font.size': 16})
+		override_graph_range = self.user_inputs['override_graph_range']
+
+		# Plot
+		if override_graph_range:
+			x_from, x_to = override_graph_range
+		else:
+			x_from, x_to = intelligently_set_graph_domain(self.distribution1, self.distribution2)
+
+		plot = plot_pdfs_bayes_update(self.distribution1, self.distribution2, self, x_from=x_from, x_to=x_to)
+		plot = mpld3.fig_to_html(plot)
+
+		return plot
+
+	def distribution_information_out(self):
+		# expected value
+		ev = self.expect(epsrel=1 / 100)  # epsrel is the relative tolerance passed to the integration routine
+		ev_string = '<br>Expected value: ' + str(np.around(ev, 2)) + '<br>'
+
+		# percentiles
+		percentiles_exact_string = 'Percentiles:<br>'  # todo use a list instead of line breaks
+
+		if self.user_inputs['custom_percentiles']:
+			p = self.user_inputs['custom_percentiles']
+		else:
+			p = [0.1, 0.25, 0.5, 0.75, 0.9]
+		percentiles_exact = self.compute_percentiles(p)
+
+		for x in percentiles_exact['result']:
+			percentiles_exact_string += str(x) + ', ' + str(np.around(percentiles_exact['result'][x], 2)) + '<br>'
+		percentiles_exact_string += percentiles_exact['runtime']
+		return ev_string + percentiles_exact_string
+
 class CustomFromPDF(stats.rv_continuous):
 	def __init__(self, pdf_callable,a=-np.inf,b=np.inf):
 		super(CustomFromPDF, self).__init__()
@@ -159,59 +194,6 @@ class CustomFromPDF(stats.rv_continuous):
 
 	def _pdf(self,x):
 		return self.pdf_callable(x)
-
-def graph_out(user_inputs):
-	plt.rcParams.update({'font.size': 16})
-	# parse inputs
-	prior = user_inputs['prior']
-	likelihood = user_inputs['likelihood']
-	override_graph_range = user_inputs['override_graph_range']
-
-	# compute posterior pdf
-	s = time.time()
-	posterior = Posterior_scipyrv(prior, likelihood)
-	e = time.time()
-	print(e - s, 'seconds to get posterior pdf')
-
-	# Plot
-	if override_graph_range:
-		x_from, x_to = override_graph_range
-	else:
-		x_from, x_to = intelligently_set_graph_domain(prior, likelihood)
-
-	s = time.time()
-	plot = plot_pdfs_bayes_update(prior, likelihood, posterior, x_from=x_from, x_to=x_to)
-	plot = mpld3.fig_to_html(plot)
-	e = time.time()
-	print(e - s, 'seconds to make plot')
-
-	# Expected value
-	ev = np.around(posterior.expect(), 2)
-	ev_string = 'Posterior expected value: ' + str(ev) + '<br>'
-
-	return plot + ev_string
-
-def percentiles_out(user_inputs):
-	# Parse inputs
-	prior = user_inputs['prior']
-	likelihood = user_inputs['likelihood']
-
-	# compute posterior pdf
-	posterior = Posterior_scipyrv(prior, likelihood)
-
-	# percentiles
-	percentiles_exact_string = ''
-
-	if user_inputs['custom_percentiles']:
-		p = user_inputs['custom_percentiles']
-	else:
-		p = [0.1, 0.25, 0.5, 0.75, 0.9]
-	percentiles_exact = posterior.compute_percentiles(p)
-
-	percentiles_exact_string = percentiles_exact['runtime'] + '<br>'
-	for x in percentiles_exact['result']:
-		percentiles_exact_string += str(x) + ', ' + str(np.around(percentiles_exact['result'][x], 2)) + '<br>'
-	return percentiles_exact_string
 
 def intersect_intervals(two_tuples):
 	interval1 , interval2 = two_tuples
@@ -302,7 +284,11 @@ def plot_pdfs_bayes_update(prior,likelihood,posterior,x_from=-50,x_to=50):
 
 def intelligently_set_graph_domain(prior,likelihood):
 	p = 0.1
-	prior_range = prior.ppf(p), prior.ppf(1-p)
+	try:
+		prior_range = np.quantile(prior.monte_carlo_samples,(p,1-p))
+	except AttributeError:
+		prior_range = prior.ppf(p), prior.ppf(1-p)
+
 	likelihood_range = likelihood.ppf(p), likelihood.ppf(1-p)
 
 	ranges = extremeties_intervals([prior_range,likelihood_range])
@@ -317,3 +303,72 @@ def intelligently_set_graph_domain(prior,likelihood):
 
 	return domain
 
+def normal_parameters(x1, p1, x2, p2):
+	"Find parameters for a normal random variable X so that P(X < x1) = p1 and P(X < x2) = p2."
+	denom = stats.norm.ppf(p2) - stats.norm.ppf(p1)
+	sigma = (x2 - x1) / denom
+	mu = (x1*stats.norm.ppf(p2) - x2*stats.norm.ppf(p1)) / denom
+	return (mu, sigma)
+
+class DiffLogBetas(stats.rv_continuous):
+	def __init__(self, a1, b1, a2, b2):
+		super().__init__()
+		self.a = -np.inf
+		self.b = np.inf
+
+		n = int(1e4)
+		beta1 = stats.beta(a1, b1)
+		beta2 = stats.beta(a2, b2)
+
+		log_beta1_samples = np.log(beta1.rvs(n))
+		log_beta2_samples = np.log(beta2.rvs(n))
+		self.log_ratio_samples = log_beta1_samples - log_beta2_samples
+		self.monte_carlo_samples = self.log_ratio_samples
+
+		self.kernel = stats.gaussian_kde(self.log_ratio_samples)
+
+	def _pdf(self, x):
+		return self.kernel(x)
+
+class RatioBetas(stats.rv_continuous):
+	def __init__(self, a1, b1, a2, b2):
+		super().__init__()
+		self.a = 0
+		self.b = np.inf
+
+		n = int(1e4)
+		beta1 = stats.beta(a1, b1)
+		beta2 = stats.beta(a2, b2)
+
+		beta1_samples = beta1.rvs(n)
+		beta2_samples = beta2.rvs(n)
+		self.ratio_samples = beta1_samples/beta2_samples
+		self.monte_carlo_samples = self.ratio_samples
+
+		# Ironically, we actually do a log-transform here, because afaik `gaussian_kde` expects an unbounded distribution.
+		log_ratio_samples = np.log(beta1_samples)-np.log(beta2_samples)
+		self.kernel_of_log = stats.gaussian_kde(log_ratio_samples)
+
+	def _pdf(self, x):
+		"""
+		Use the chain rule
+		"""
+		return self.kernel_of_log(np.log(x))*1/x
+
+class LogTransformedDistr(stats.rv_continuous):
+	def __init__(self, original_distribution):
+		super().__init__()
+
+		self.original_distribution = original_distribution
+
+		self.a = np.exp(original_distribution.a)
+		self.b = np.exp(original_distribution.b)
+
+	def _pdf(self, x):
+		return self.original_distribution.pdf(np.exp(x))
+
+	def _cdf(self, x):
+		return self.original_distribution.pdf(np.exp(x))
+
+	def _ppf(self, p):
+		return np.log(self.original_distribution.ppf(p))

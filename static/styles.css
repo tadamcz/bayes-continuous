@@ -2,5 +2,22 @@
 
 .form_section_title {font-weight: bold}
 .form_section {margin-top: 1em}
-.page_section {margin-top: 1em; max-width: 45em}
+.page_section {margin-top: 1em}
 .footer {margin-top: 1em}
+
+.flexbox {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+#resultsPane{
+    margin-left: 5em;
+}
+
+#inputPane, #inputExplainer {
+    max-width: 35em;
+}
+
+#likelihood-normal_95_ci{
+    display: none;  /*    by default*/
+}
