@@ -1,85 +1,152 @@
-import numpy as np
-from scipy import stats
-from scipy import integrate
-from scipy import optimize
 import time
 
-class Posterior(stats.rv_continuous): # todo docstrings
-	def __init__(self, distribution1, distribution2, user_inputs):
+import numpy as np
+from scipy import integrate
+from scipy import optimize
+from scipy import stats
+from scipy.stats._distn_infrastructure import rv_frozen
+from sortedcontainers import SortedDict
+
+import utils
+from likelihood_func import LikelihoodFunction
+
+
+class Posterior(stats.rv_continuous):
+	def __init__(self, prior_distribution: rv_frozen, likelihood_function: LikelihoodFunction):
+		"""
+		We can call theta the parameter over which we want to conduct inference.
+		The inputs to this __init__ are then:
+		* likelihood function: relative probability of the data/event we observed, as a function of theta
+		* prior over theta, with any number of parameters
+
+		(This prior is sometimes called a hyper-prior with hyper-parameters,
+		because theta is also the parameter of a distribution, the distribution Norm(θ,s²)
+		used in the likelihood function below)
+
+		Example with lognormal prior and normal likelihood:
+
+		Suppose that a study has the point estimator B for the parameter Bigθ.
+		Bigθ could be the average height of men in England.
+		Possible values of Bigθ are denoted θ.
+
+		The study results are an estimate b for B, and an estimated standard deviation sd^(B)=s.
+		For example, b is the sample mean, with a sample standard deviation of s.
+		To keep the problem 1-dimensional, we assume that s is the true standard deviation of B.
+
+		The likelihood function is:
+		ℒ: θ ↦ P(b∣ θ) = PDFNorm(θ,s²)(b)
+
+		The prior over Bigθ is lognormal.
+		This lognormal distribution has the following hyper-parameters: μ, σ.
+		Its PDF is:
+		PriorPDF: θ ↦ PDFLogNorm(μ, σ²)(θ)
+
+		The posterior distribution over Bigθ has the following PDF:
+		Posterior: θ ↦ P(θ|b) = ℒ(θ)*PriorPDF(θ) / normalization_constant
+		"""
 		super(Posterior, self).__init__()
 
-		self.distribution1= distribution1
-		self.distribution2= distribution2
-		self.user_inputs = user_inputs
+		self.prior_distribution = prior_distribution
+		self.likelihood_function = likelihood_function
 
-		self.cdf_lookup = {} # Lookup table to increase speed
+		# Lookup table for performance
+		self.cdf_lookup = SortedDict()
 
 		'''
-		defining the support of the product pdf is important
+		Defining the support of the product pdf is important
 		because, when we use a numerical equation solver on the CDF,
 		it will only need to look for solutions in the support, instead
 		of on the entire real line.
 		'''
-		a1, b1 = distribution1.support()
-		a2,b2 = distribution2.support()
+		a1, b1 = prior_distribution.support()
+		a2, b2 = likelihood_function.left_bound, likelihood_function.right_bound
 
 		# SciPy calls the support (a,b)
-		self.a , self.b = intersect_intervals([(a1,b1),(a2,b2)])
+		self.a, self.b = utils.intersect_intervals([(a1, b1), (a2, b2)])
 
-		'''
-		the mode is used in my custom definition of _cdf() below.
-		it's important that we don't run optimize.fmin every time cdf 
-		is called, so I run it during init.
-		'''
-		initial_guess_for_mode = (self.distribution1.expect() + self.distribution2.expect()) / 2 # could be improved
-		self.mode = initial_guess_for_mode
+		self._mode = None
+		self.integral_splitpoint = self.mode()
 
-		'''find normalization constant in init, so don't have to run integration every time'''
-		self.normalization_constant = split_integral(function_to_integrate=self.unnormalized_pdf,
-													 splitpoint=self.mode,
-													 integrate_to=self.b,
-													 support=self.support())
+		self.normalization_constant = utils.split_integral(function_to_integrate=self.unnormalized_pdf,
+														   splitpoint=self.integral_splitpoint,
+														   integrate_to=self.b,
+														   support=self.support())
 
+	def mode(self):
+		if self._mode is None:
+			neg_pdf = lambda x: -self.unnormalized_pdf(x)
+			left_bound, right_bound = self.support()
+			if np.isfinite(left_bound) and np.isfinite(right_bound):
+				method = 'bounded'
+			else:
+				method = 'brent'
 
-	def unnormalized_pdf(self,x):
-		return self.distribution1.pdf(x) * self.distribution2.pdf(x)
+			if left_bound == -np.inf:
+				left_bound = None
+			if right_bound == np.inf:
+				right_bound = None
 
-	def _pdf(self,x):
-		return self.unnormalized_pdf(x)/self.normalization_constant
+			optimize_result = optimize.minimize_scalar(neg_pdf, bounds=(left_bound, right_bound), method=method)
+			if not optimize_result.success:
+				raise RuntimeError
+			else:
+				self._mode = optimize_result.x
 
-	def _cdf(self,x):
-		# Memeoization: we consider the cdf to be 1 forevermore once it reaches values close to 1
-		round_to_places = 5
-		for x_lookup in self.cdf_lookup:
-			cdf_value_approximate = np.around(self.cdf_lookup[x_lookup], round_to_places)
-			if x_lookup < x and cdf_value_approximate==1.0:
+		return self._mode
+
+	def unnormalized_pdf(self, x):
+		return self.prior_distribution.pdf(x) * self.likelihood_function.callable(x)
+
+	def _pdf(self, x):
+		return self.unnormalized_pdf(x) / self.normalization_constant
+
+	def _cdf(self, x):
+
+		# Todo: a better way to deal with ndarray inputs vs scalars
+		if isinstance(x, np.ndarray):
+			if len(x) == 1 and x[0] in self.cdf_lookup:
+				return self.cdf_lookup[x[0]]
+
+		# We can consider the cdf to be 1 forevermore once it reaches values close to 1 (todo: do this for very small values too)
+		# Find the greatest key less than x
+		index = self.cdf_lookup.bisect_left(x) - 1
+		if index >= 0:
+			cache_key, cache_val = self.cdf_lookup.peekitem(index)
+			if x < cache_key:  # todo replace this with a test
+				raise RuntimeError
+			if x > cache_key and np.isclose(cache_val, 1, rtol=1e-7, atol=0):
 				return 1
 
-		# Memeoization for any input: check lookup table for largest integral already computed below x. only
-		# integrate the remaining bit.
-		# Same number of integrations, but the integrations are over a much smaller interval.
-		sortedkeys = sorted(self.cdf_lookup, reverse=True)
-		for key in sortedkeys:
-			# find the greatest key less than x
-			if key<x:
-				cdf_value = self.cdf_lookup[key]+integrate.quad(self.pdf,key,x)[0] #integrate smaller interval
-				self.cdf_lookup[float(x)] = cdf_value  # add to lookup table
-				return cdf_value
 
-		cdf_value = split_integral(
+		# A form of memoization:
+		# Check lookup table for largest integral already computed below x.
+		# Only integrate the remaining bit.
+		# Same number of integrations, but the integrations are over a much smaller interval.
+
+		# Find the greatest key less than x
+		index = self.cdf_lookup.bisect_left(x) - 1
+		if index >= 0:
+			cache_key, cache_val = self.cdf_lookup.peekitem(index)
+			cdf_value = cache_val + integrate.quad(self.pdf, cache_key, x)[0]  # integrate the smaller interval
+			if x < cache_key:  # todo replace this with a test
+				raise RuntimeError
+			self.cdf_lookup[float(x)] = cdf_value
+			return cdf_value
+
+		cdf_value = utils.split_integral(
 			function_to_integrate=self.pdf,
-			splitpoint=self.mode,
+			splitpoint=self.integral_splitpoint,
 			integrate_to=x,
 			support=self.support())
 
-		self.cdf_lookup[float(x)] = cdf_value  # add to lookup table
+		self.cdf_lookup[float(x)] = cdf_value
 		return cdf_value
 
 	def ppf_with_bounds(self, quantile, leftbound, rightbound):
-		'''
+		"""
 		wraps scipy ppf function
 		https://github.com/scipy/scipy/blob/4c0fd79391e3b2ec2738bf85bb5dab366dcd12e4/scipy/stats/_distn_infrastructure.py#L1681-L1699
-		'''
+		"""
 
 		factor = 10.
 		left, right = self._get_support()
@@ -104,7 +171,6 @@ class Posterior(stats.rv_continuous): # todo docstrings
 			right = rightbound
 
 		return optimize.brentq(self._ppf_to_solve, left, right, args=quantile, xtol=self.xtol, full_output=False)
-
 
 	def compute_percentiles(self, percentiles_list):
 		result = {}
@@ -133,160 +199,26 @@ class Posterior(stats.rv_continuous): # todo docstrings
 		for p in percentiles_reordered:
 			# print("trying to compute the", p, "th percentile")
 			try:
-				leftbound , rightbound = get_bounds_on_ppf(result,p)
-				res = self.ppf_with_bounds(p,leftbound,rightbound)
+				leftbound, rightbound = get_bounds_on_ppf(result, p)
+				res = self.ppf_with_bounds(p, leftbound, rightbound)
 				result[p] = res
 			except RuntimeError as e:
 				result[p] = e
 
-		sorted_result = {key:value for key,value in sorted(result.items())}
+		sorted_result = {key: value for key, value in sorted(result.items())}
 
 		end = time.time()
 		description_string = 'Computed in ' + str(np.around(end - start, 1)) + ' seconds'
 
 		return {'result': sorted_result, 'runtime': description_string}
 
+
 class CustomFromPDF(stats.rv_continuous):
-	def __init__(self, pdf_callable,a=-np.inf,b=np.inf):
+	def __init__(self, pdf_callable, a=-np.inf, b=np.inf):
 		super(CustomFromPDF, self).__init__()
 		self.pdf_callable = pdf_callable
 		self.a = a
 		self.b = b
 
-	def _pdf(self,x):
+	def _pdf(self, x):
 		return self.pdf_callable(x)
-
-def intersect_intervals(two_tuples):
-	interval1 , interval2 = two_tuples
-
-	interval1_left,interval1_right = interval1
-	interval2_left,interval2_right = interval2
-
-	if interval1_right < interval2_left or interval2_right < interval2_left:
-		raise ValueError("the distributions have no overlap")
-	
-	intersect_left,intersect_right = max(interval1_left,interval2_left),min(interval1_right,interval2_right)
-
-	return intersect_left,intersect_right
-
-def extremeties_intervals(two_tuples):
-	interval1,interval2 = two_tuples
-
-	interval1_left, interval1_right = interval1
-	interval2_left, interval2_right = interval2
-
-	extreme_left = min(interval1_left,interval1_right,interval2_left,interval2_right)
-	extreme_right = max(interval1_left,interval1_right,interval2_left,interval2_right)
-
-	return extreme_left,extreme_right
-
-def split_integral(function_to_integrate,splitpoint,integrate_to,support=(-np.inf,np.inf)):
-	'''
-	https://stackoverflow.com/questions/47193045/why-does-integrate-quadlambda-x-xexp-x2-2-sqrt2pi-0-0-100000-give-0
-	https://stackoverflow.com/questions/34877147/limits-of-quad-integration-in-scipy-with-np-inf
-
-	if you try
-
-	for x in range(100):
-		print('cdf(',x,') = ',distr.cdf(x))
-
-	CDF goes to 1 and then becomes
-	a tiny value or 0. Due to problem of integrating over an area that
-	is mostly 0. See stackoverflow links above.
-
-	This creates problems when trying to use numerical equation solvers
-	on the CDF. e.g. a bisection algo will first try CDF(very_large_number)
-	and this will return 0.
-
-	you can point quad to the region of the function
-	where the peak(s) is/are with by supplying the points argument
-	(points where 'where local difficulties of the integrand may occur'
-	according to the documentation)
-
-	But you can't pass points when one of the integration bounds
-	is infinite.
-
-	My solution: do the integration in two parts.
-	First the left, then the right.
-	Won't work for every function, but should cover many cases.
-	'''
-	support_left,support_right = support
-
-	if integrate_to < splitpoint:
-		# just return the integral normally
-		return integrate.quad(function_to_integrate,support_left,integrate_to)[0] #only return the answer, first element in tuple. Same below.
-
-	else:
-		integral_left = integrate.quad(function_to_integrate, support_left, splitpoint)[0]
-		integral_right = integrate.quad(function_to_integrate, splitpoint, integrate_to)[0]
-		return integral_left + integral_right
-
-def normal_parameters(x1, p1, x2, p2):
-	"Find parameters for a normal random variable X so that P(X < x1) = p1 and P(X < x2) = p2."
-	denom = stats.norm.ppf(p2) - stats.norm.ppf(p1)
-	sigma = (x2 - x1) / denom
-	mu = (x1*stats.norm.ppf(p2) - x2*stats.norm.ppf(p1)) / denom
-	return (mu, sigma)
-
-class DiffLogBetas(stats.rv_continuous):
-	def __init__(self, a1, b1, a2, b2):
-		super().__init__()
-		self.a = -np.inf
-		self.b = np.inf
-
-		n = int(1e4)
-		beta1 = stats.beta(a1, b1)
-		beta2 = stats.beta(a2, b2)
-
-		log_beta1_samples = np.log(beta1.rvs(n))
-		log_beta2_samples = np.log(beta2.rvs(n))
-		self.log_ratio_samples = log_beta1_samples - log_beta2_samples
-		self.monte_carlo_samples = self.log_ratio_samples
-
-		self.kernel = stats.gaussian_kde(self.log_ratio_samples)
-
-	def _pdf(self, x):
-		return self.kernel(x)
-
-class RatioBetas(stats.rv_continuous):
-	def __init__(self, a1, b1, a2, b2):
-		super().__init__()
-		self.a = 0
-		self.b = np.inf
-
-		n = int(1e4)
-		beta1 = stats.beta(a1, b1)
-		beta2 = stats.beta(a2, b2)
-
-		beta1_samples = beta1.rvs(n)
-		beta2_samples = beta2.rvs(n)
-		self.ratio_samples = beta1_samples/beta2_samples
-		self.monte_carlo_samples = self.ratio_samples
-
-		# Ironically, we actually do a log-transform here, because afaik `gaussian_kde` expects an unbounded distribution.
-		log_ratio_samples = np.log(beta1_samples)-np.log(beta2_samples)
-		self.kernel_of_log = stats.gaussian_kde(log_ratio_samples)
-
-	def _pdf(self, x):
-		"""
-		Use the chain rule
-		"""
-		return self.kernel_of_log(np.log(x))*1/x
-
-class LogTransformedDistr(stats.rv_continuous):
-	def __init__(self, original_distribution):
-		super().__init__()
-
-		self.original_distribution = original_distribution
-
-		self.a = np.exp(original_distribution.a)
-		self.b = np.exp(original_distribution.b)
-
-	def _pdf(self, x):
-		return self.original_distribution.pdf(np.exp(x))
-
-	def _cdf(self, x):
-		return self.original_distribution.pdf(np.exp(x))
-
-	def _ppf(self, p):
-		return np.log(self.original_distribution.ppf(p))
