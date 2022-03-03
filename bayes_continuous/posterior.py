@@ -7,8 +7,8 @@ from scipy import stats
 from scipy.stats._distn_infrastructure import rv_frozen
 from sortedcontainers import SortedDict
 
-import utils
-from likelihood_func import LikelihoodFunction
+from bayes_continuous import utils
+from bayes_continuous.likelihood_func import LikelihoodFunction
 
 
 class Posterior(stats.rv_continuous):
@@ -95,7 +95,7 @@ class Posterior(stats.rv_continuous):
 		return self._mode
 
 	def unnormalized_pdf(self, x):
-		return self.prior_distribution.pdf(x) * self.likelihood_function.callable(x)
+		return self.prior_distribution.pdf(x) * self.likelihood_function.function(x)
 
 	def _pdf(self, x):
 		return self.unnormalized_pdf(x) / self.normalization_constant

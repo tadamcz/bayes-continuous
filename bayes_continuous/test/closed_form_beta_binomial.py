@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from likelihood_func import BinomialLikelihood
-from posterior import Posterior
+from bayes_continuous.likelihood_func import BinomialLikelihood
+from bayes_continuous.posterior import Posterior
 
 prior_alpha = 1
 prior_beta = 3

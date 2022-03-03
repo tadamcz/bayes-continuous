@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from likelihood_func import NormalLikelihood
-from posterior import Posterior
+from bayes_continuous.likelihood_func import NormalLikelihood
+from bayes_continuous.posterior import Posterior
 
 prior_mu = 5.45
 prior_sigma = 6.789
