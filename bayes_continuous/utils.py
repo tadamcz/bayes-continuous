@@ -98,3 +98,35 @@ def normal_parameters(x1, p1, x2, p2):
 	sigma = (x2 - x1) / denom
 	mu = (x1 * stats.norm.ppf(p2) - x2 * stats.norm.ppf(p1)) / denom
 	return (mu, sigma)
+
+
+def normal_normal_closed_form(mu_1, sigma_1, mu_2, sigma_2):
+	"""
+	Returns a pair (posterior_mu, posterior_sigma)
+	"""
+	if sigma_1 < 0 or sigma_2 < 0:
+		raise ValueError
+
+	numerator = mu_1 * sigma_1 ** -2 + mu_2 * sigma_2 ** -2
+	denominator = sigma_1 ** -2 + sigma_2 ** -2
+
+	posterior_mu = numerator / denominator
+	posterior_sigma = (sigma_1 ** -2 + sigma_2 ** -2) ** (-1 / 2)
+
+	return posterior_mu, posterior_sigma
+
+
+def beta_binomial_closed_form(prior_alpha, prior_beta, likelihood_successes, likelihood_trials):
+	"""
+	Returns a pair (posterior_alpha, posterior_beta)
+	"""
+	if not float(likelihood_trials).is_integer():
+		raise ValueError
+	if not float(likelihood_successes).is_integer():
+		raise ValueError
+
+	likelihood_failures = likelihood_trials - likelihood_successes
+
+	posterior_alpha = prior_alpha + likelihood_successes
+	posterior_beta = prior_beta + likelihood_failures
+	return posterior_alpha, posterior_beta

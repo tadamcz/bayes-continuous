@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from scipy import stats
 
+from bayes_continuous import utils
 from bayes_continuous.likelihood_func import NormalLikelihood
 from bayes_continuous.posterior import Posterior
 
@@ -16,11 +17,12 @@ likelihood = NormalLikelihood(likelihood_mu, likelihood_sigma)
 
 posterior = Posterior(prior, likelihood)
 
-numerator = prior_mu * prior_sigma ** -2 + likelihood_mu * likelihood_sigma ** -2
-denominator = prior_sigma ** -2 + likelihood_sigma ** -2
+posterior_mu_closed_form, posterior_sigma_closed_form = utils.normal_normal_closed_form(
+	mu_1=prior_mu,
+	sigma_1=prior_sigma,
+	mu_2=likelihood_mu,
+	sigma_2=likelihood_sigma)
 
-posterior_mu_closed_form = numerator / denominator
-posterior_sigma_closed_form = (prior_sigma ** -2 + likelihood_sigma ** -2) ** (-1 / 2)
 posterior_closed_form = stats.norm(loc=posterior_mu_closed_form, scale=posterior_sigma_closed_form)
 
 
