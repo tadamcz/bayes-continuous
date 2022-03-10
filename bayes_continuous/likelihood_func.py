@@ -44,6 +44,8 @@ class NormalLikelihood(LikelihoodFunction):
 		But this is a special case (see https://fragile-credences.github.io/bayes-normal-likelihood/),
 		so I prefer to use the formula that is also true in general.
 		"""
+		self.mu = mu
+		self.sigma = sigma
 		self.domain = (-np.inf,np.inf)
 		likelihood = lambda theta: stats.norm(loc=theta, scale=sigma).pdf(mu)
 		super().__init__(likelihood)
@@ -55,6 +57,8 @@ class BinomialLikelihood(LikelihoodFunction):
 		`scipy.stats.binom` takes two arguments (n,p), where n is the number of trials
 		and p is the probability of success.
 		"""
+		self.successes = successes
+		self.trials = trials
 		self.domain = (0,1)
 		likelihood = lambda theta: stats.binom(trials, theta).pmf(successes)
 		super().__init__(likelihood)
