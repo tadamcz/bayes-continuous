@@ -3,12 +3,18 @@ from scipy import integrate, stats
 from scipy import optimize
 
 
-def mode_of_distribution(distribution: stats._distn_infrastructure.rv_frozen):
+def is_frozen_normal(distribution):
 	if isinstance(distribution, stats._distn_infrastructure.rv_frozen):
 		if isinstance(distribution.dist, stats._continuous_distns.norm_gen):
-			args, kwds = distribution.args, distribution.kwds
-			shapes, loc, scale = distribution.dist._parse_args(*args, **kwds)
-			return loc
+			return True
+	return False
+
+
+def mode_of_distribution(distribution: stats._distn_infrastructure.rv_frozen):
+	if is_frozen_normal(distribution):
+		args, kwds = distribution.args, distribution.kwds
+		shapes, loc, scale = distribution.dist._parse_args(*args, **kwds)
+		return loc
 
 	neg_pdf = lambda x: -distribution.pdf(x)
 	left_bound, right_bound = distribution.support()
@@ -82,7 +88,8 @@ def split_integral(function_to_integrate, splitpoint, integrate_to, support=(-np
 
 	if integrate_to < splitpoint:
 		# just return the integral normally
-		return integrate.quad(function_to_integrate, support_left, integrate_to)[0]  # only return the answer, first element in tuple. Same below.
+		return integrate.quad(function_to_integrate, support_left, integrate_to)[
+			0]  # only return the answer, first element in tuple. Same below.
 
 	else:
 		integral_left = integrate.quad(function_to_integrate, support_left, splitpoint)[0]
