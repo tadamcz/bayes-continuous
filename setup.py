@@ -10,7 +10,6 @@ setuptools.setup(
 		"pytest",
 		"sortedcontainers",
 	],
-	url='',
 	license='',
 	author='tadamcz',
 	author_email='',
