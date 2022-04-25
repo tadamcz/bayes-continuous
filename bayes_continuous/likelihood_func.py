@@ -47,7 +47,7 @@ class NormalLikelihood(LikelihoodFunction):
 		self.mu = mu
 		self.sigma = sigma
 		self.domain = (-np.inf,np.inf)
-		likelihood = lambda theta: stats.norm(loc=theta, scale=sigma).pdf(mu)
+		likelihood = lambda theta: stats.norm.pdf(mu, loc=theta, scale=sigma)
 		super().__init__(likelihood)
 
 
@@ -60,5 +60,5 @@ class BinomialLikelihood(LikelihoodFunction):
 		self.successes = successes
 		self.trials = trials
 		self.domain = (0,1)
-		likelihood = lambda theta: stats.binom(trials, theta).pmf(successes)
+		likelihood = lambda theta: stats.binom.pmf(successes, n=trials, p=theta)
 		super().__init__(likelihood)
