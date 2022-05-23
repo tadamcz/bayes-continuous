@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from scipy import stats
 
+from bayes_continuous import utils
 from bayes_continuous.likelihood_func import BinomialLikelihood
 from bayes_continuous.posterior import Posterior
 
@@ -17,8 +18,12 @@ likelihood = BinomialLikelihood(successes=likelihood_successes, trials=likelihoo
 
 posterior = Posterior(prior, likelihood)
 
-posterior_alpha_closed_form = prior_alpha + likelihood_successes
-posterior_beta_closed_form = prior_beta + likelihood_failures
+posterior_alpha_closed_form, posterior_beta_closed_form = utils.beta_binomial_closed_form(
+	prior_alpha=prior_alpha,
+	prior_beta=prior_beta,
+	likelihood_successes=likelihood_successes,
+	likelihood_trials=likelihood_trials
+)
 posterior_closed_form = stats.beta(posterior_alpha_closed_form, posterior_beta_closed_form)
 
 

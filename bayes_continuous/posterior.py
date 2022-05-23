@@ -1,4 +1,8 @@
 import time
+try:
+	from functools import cache as _cache  # In Python 3.9
+except ImportError:
+	from functools import lru_cache as _cache
 
 import numpy as np
 from scipy import integrate
@@ -46,8 +50,8 @@ class Posterior(stats.rv_continuous):
 		"""
 		super(Posterior, self).__init__()
 
-		self.prior_distribution = prior_distribution
-		self.likelihood_function = likelihood_function
+		self._prior_distribution = prior_distribution
+		self._likelihood_function = likelihood_function
 
 		# Lookup table for performance
 		self.cdf_lookup = SortedDict()
@@ -211,6 +215,26 @@ class Posterior(stats.rv_continuous):
 		description_string = 'Computed in ' + str(np.around(end - start, 1)) + ' seconds'
 
 		return {'result': sorted_result, 'runtime': description_string}
+
+	@_cache
+	def expect(self):
+		return super(Posterior, self).expect()
+
+	@_cache
+	def var(self):
+		return super(Posterior, self).var()
+
+	@_cache
+	def std(self):
+		return super(Posterior, self).std()
+
+	@property
+	def prior_distribution(self):
+		return self._prior_distribution
+
+	@property
+	def likelihood_function(self):
+		return self._likelihood_function
 
 
 class CustomFromPDF(stats.rv_continuous):

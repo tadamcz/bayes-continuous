@@ -3,12 +3,18 @@ from scipy import integrate, stats
 from scipy import optimize
 
 
-def mode_of_distribution(distribution: stats._distn_infrastructure.rv_frozen):
+def is_frozen_normal(distribution):
 	if isinstance(distribution, stats._distn_infrastructure.rv_frozen):
 		if isinstance(distribution.dist, stats._continuous_distns.norm_gen):
-			args, kwds = distribution.args, distribution.kwds
-			shapes, loc, scale = distribution.dist._parse_args(*args, **kwds)
-			return loc
+			return True
+	return False
+
+
+def mode_of_distribution(distribution: stats._distn_infrastructure.rv_frozen):
+	if is_frozen_normal(distribution):
+		args, kwds = distribution.args, distribution.kwds
+		shapes, loc, scale = distribution.dist._parse_args(*args, **kwds)
+		return loc
 
 	neg_pdf = lambda x: -distribution.pdf(x)
 	left_bound, right_bound = distribution.support()
@@ -82,7 +88,8 @@ def split_integral(function_to_integrate, splitpoint, integrate_to, support=(-np
 
 	if integrate_to < splitpoint:
 		# just return the integral normally
-		return integrate.quad(function_to_integrate, support_left, integrate_to)[0]  # only return the answer, first element in tuple. Same below.
+		return integrate.quad(function_to_integrate, support_left, integrate_to)[
+			0]  # only return the answer, first element in tuple. Same below.
 
 	else:
 		integral_left = integrate.quad(function_to_integrate, support_left, splitpoint)[0]
@@ -98,3 +105,35 @@ def normal_parameters(x1, p1, x2, p2):
 	sigma = (x2 - x1) / denom
 	mu = (x1 * stats.norm.ppf(p2) - x2 * stats.norm.ppf(p1)) / denom
 	return (mu, sigma)
+
+
+def normal_normal_closed_form(mu_1, sigma_1, mu_2, sigma_2):
+	"""
+	Returns a pair (posterior_mu, posterior_sigma)
+	"""
+	if sigma_1 < 0 or sigma_2 < 0:
+		raise ValueError
+
+	numerator = mu_1 * sigma_1 ** -2 + mu_2 * sigma_2 ** -2
+	denominator = sigma_1 ** -2 + sigma_2 ** -2
+
+	posterior_mu = numerator / denominator
+	posterior_sigma = (sigma_1 ** -2 + sigma_2 ** -2) ** (-1 / 2)
+
+	return posterior_mu, posterior_sigma
+
+
+def beta_binomial_closed_form(prior_alpha, prior_beta, likelihood_successes, likelihood_trials):
+	"""
+	Returns a pair (posterior_alpha, posterior_beta)
+	"""
+	if not float(likelihood_trials).is_integer():
+		raise ValueError
+	if not float(likelihood_successes).is_integer():
+		raise ValueError
+
+	likelihood_failures = likelihood_trials - likelihood_successes
+
+	posterior_alpha = prior_alpha + likelihood_successes
+	posterior_beta = prior_beta + likelihood_failures
+	return posterior_alpha, posterior_beta
