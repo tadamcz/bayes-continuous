@@ -217,8 +217,8 @@ class Posterior(stats.rv_continuous):
 		return {'result': sorted_result, 'runtime': description_string}
 
 	@_cache
-	def expect(self):
-		return super(Posterior, self).expect()
+	def expect(self, **kwargs):
+		return super(Posterior, self).expect(**kwargs)
 
 	@_cache
 	def var(self):
